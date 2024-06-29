@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controlling the Graph State &mdash; Dagor documentation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/design-tabs.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Dispatching Work in Nodes at Runtime" href="runtime.html" />
+    <link rel="prev" title="Declaring a Node" href="declaringNodes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Dagor documentation
+            <img src="../../../_static/gaijin.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../daBFG.html">daBFG API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="core.html">Core Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="declaringNodes.html">Declaring a Node</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Controlling the Graph State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="runtime.html">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="das.html">DaScript module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../helperClasses.html">Helper classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resourceSlot.html">Resource slots</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quirrel-modules/index.html">Quirrel Modules Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../qdox-user-guide/index.html">Qdox User Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daBFG.html">daBFG API</a></li>
+      <li class="breadcrumb-item active">Controlling the Graph State</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-render/index/daBFG/graphState.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="controlling-the-graph-state">
+<h1>Controlling the Graph State<a class="headerlink" href="#controlling-the-graph-state" title="Permalink to this heading"></a></h1>
+<p>When a node is created using <code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">dabfg::register_node()</span></code>, a handle
+object is returned that must be used to control the lifetime of this
+node. As soon as the handle is destroyed, the node is removed from the
+graph.</p>
+<p>The recommended approach for managing handles is to use feature specific
+daECS entities. The idea is to encapsulate all of the “settings” required
+for creating a node for a feature as well as a handle for that node
+inside a single entity and automatically re-create the node when the
+settings change using ECS tracking capabilities. When the feature is
+disabled, the entity is destroyed and the node is removed from the graph
+automagically.</p>
+<p>Note also that the handles are generational, so it is safe to simply
+assign a new node handle to a component without explicitly resetting the
+old node handle.</p>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg10NodeHandleE">
+<span id="_CPPv3N5dabfg10NodeHandleE"></span><span id="_CPPv2N5dabfg10NodeHandleE"></span><span id="dabfg::NodeHandle"></span><span class="target" id="classdabfg_1_1_node_handle"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NodeHandle</span></span></span><a class="headerlink" href="#_CPPv4N5dabfg10NodeHandleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Holds ownership over a node’s lifetime. As soon as a handle to a node destroyed, the node is unregistered, but only if it was not re-registered since the time that this handle was acquired. </p>
+<p>Note that this is a move-only type. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg10NodeHandle10NodeHandleEv">
+<span id="_CPPv3N5dabfg10NodeHandle10NodeHandleEv"></span><span id="_CPPv2N5dabfg10NodeHandle10NodeHandleEv"></span><span id="dabfg::NodeHandle::NodeHandle"></span><span class="target" id="classdabfg_1_1_node_handle_1ae632bf842cabd40e00ecb83d47f8b9c8"></span><span class="sig-name descname"><span class="n"><span class="pre">NodeHandle</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5dabfg10NodeHandle10NodeHandleEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructs an invalid handle. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg10NodeHandle10NodeHandleERR10NodeHandle">
+<span id="_CPPv3N5dabfg10NodeHandle10NodeHandleERR10NodeHandle"></span><span id="_CPPv2N5dabfg10NodeHandle10NodeHandleERR10NodeHandle"></span><span id="dabfg::NodeHandle::NodeHandle__NodeHandleRR"></span><span class="target" id="classdabfg_1_1_node_handle_1aacda2c5911479d61f883ef6356679014"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NodeHandle</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5dabfg10NodeHandle10NodeHandleERR10NodeHandle" title="dabfg::NodeHandle::NodeHandle"><span class="n"><span class="pre">NodeHandle</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg10NodeHandle10NodeHandleERR10NodeHandle" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg10NodeHandleaSERR10NodeHandle">
+<span id="_CPPv3N5dabfg10NodeHandleaSERR10NodeHandle"></span><span id="_CPPv2N5dabfg10NodeHandleaSERR10NodeHandle"></span><span id="dabfg::NodeHandle::assign-operator__NodeHandleRR"></span><span class="target" id="classdabfg_1_1_node_handle_1af954449a14168010e2d611cc1db4f3ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5dabfg10NodeHandleE" title="dabfg::NodeHandle"><span class="n"><span class="pre">NodeHandle</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5dabfg10NodeHandleE" title="dabfg::NodeHandle"><span class="n"><span class="pre">NodeHandle</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg10NodeHandleaSERR10NodeHandle" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg10NodeHandlecvbEv">
+<span id="_CPPv3N5dabfg10NodeHandlecvbEv"></span><span id="_CPPv2N5dabfg10NodeHandlecvbEv"></span><span id="dabfg::NodeHandle::castto-b-operator"></span><span class="target" id="classdabfg_1_1_node_handle_1a3672e3da16bc911c0451e935bd73944c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg10NodeHandlecvbEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns true if the handle is valid. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="declaringNodes.html" class="btn btn-neutral float-left" title="Declaring a Node" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="runtime.html" class="btn btn-neutral float-right" title="Dispatching Work in Nodes at Runtime" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Jun 29, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

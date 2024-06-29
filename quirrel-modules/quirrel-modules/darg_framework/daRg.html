@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daRg &mdash; Dagor documentation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/design-tabs.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="daRg.debug" href="daRg.debug.html" />
+    <link rel="prev" title="daRg framework" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Dagor documentation
+            <img src="../../../_static/gaijin.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Quirrel Modules Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../quirrel_gamelibs/index.html">Quirrel Gamelibs Native Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quirrel_daECS/index.html">Quirrel ECS</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">daRg framework</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">daRg</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#class-guiscene">class GuiScene</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-sceneconfig">class SceneConfig</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-lottieanimation-extends-picture">class LottieAnimation extends Picture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#enum-animprop">enum AnimProp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-behaviors">table Behaviors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-scrollhandler">class ScrollHandler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-joystickaxisobservable">class JoystickAxisObservable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-elemgroup">class ElemGroup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-behavior">class Behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-picture">class Picture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-immediate-extends-picture">class Immediate extends Picture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-formattedtext">class FormattedText</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-igenvideoplayer">class IGenVideoPlayer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-igensound">class IGenSound</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-draganddropstate">class DragAndDropState</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-eventdatarect">class EventDataRect</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-mouseclickeventdata">class MouseClickEventData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-hotkeyeventdata">class HotkeyEventData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-hovereventdata">class HoverEventData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-movetoareatarget">class MoveToAreaTarget</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-elementref">class ElementRef</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+<li class="toctree-l3"><a class="reference internal" href="renderCanvas.html">renderCanvas</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dargbox/index.html">dargbox</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../soundSystem/index.html">soundSystem</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../qdox-user-guide/index.html">Qdox User Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Quirrel Modules Docs</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daRg framework</a></li>
+      <li class="breadcrumb-item active">daRg</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/quirrel-modules/quirrel-modules/darg_framework/daRg.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="darg">
+<h1>daRg<a class="headerlink" href="#darg" title="Permalink to this heading"></a></h1>
+<p>module ‘daRg’</p>
+<p><em>Source file: prog/gameLibs/daRg/elementRef.cpp</em></p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">let</span> <span class="p">{</span> <span class="n">KBD_BIT_CAPS_LOCK</span><span class="p">,</span> <span class="n">KBD_BIT_NUM_LOCK</span><span class="p">,</span> <span class="n">KBD_BIT_SCROLL_LOCK</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_NONE</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_SCENE</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_VRSPACE</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_HEAD</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_LEFTHAND</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_RIGHTHAND</span><span class="p">,</span> <span class="n">PANEL_ANCHOR_ENTITY</span><span class="p">,</span> <span class="n">PANEL_GEOMETRY_NONE</span><span class="p">,</span> <span class="n">PANEL_GEOMETRY_RECTANGLE</span><span class="p">,</span> <span class="n">PANEL_RC_NONE</span><span class="p">,</span> <span class="n">PANEL_RC_FACE_LEFT_HAND</span><span class="p">,</span> <span class="n">PANEL_RC_FACE_RIGHT_HAND</span><span class="p">,</span> <span class="n">PANEL_RC_FACE_HEAD</span><span class="p">,</span> <span class="n">PANEL_RC_FACE_HEAD_LOCK_Y</span><span class="p">,</span> <span class="n">PANEL_RC_FACE_ENTITY</span><span class="p">,</span> <span class="n">PANEL_RENDER_CAST_SHADOW</span><span class="p">,</span> <span class="n">PANEL_RENDER_OPAQUE</span><span class="p">,</span> <span class="n">PANEL_RENDER_ALWAYS_ON_TOP</span><span class="p">,</span> <span class="n">GuiScene</span><span class="p">,</span> <span class="n">SceneConfig</span><span class="p">,</span> <span class="n">anim_start</span><span class="p">,</span> <span class="n">anim_request_stop</span><span class="p">,</span> <span class="n">anim_skip</span><span class="p">,</span> <span class="n">anim_skip_delay</span><span class="p">,</span> <span class="n">set_kb_focus</span><span class="p">,</span> <span class="n">capture_kb_focus</span><span class="p">,</span> <span class="n">calc_comp_size</span><span class="p">,</span> <span class="n">move_mouse_cursor</span><span class="p">,</span> <span class="n">get_mouse_cursor_pos</span><span class="p">,</span> <span class="n">resolve_button_id</span><span class="p">,</span> <span class="n">gui_scene</span><span class="p">,</span> <span class="n">LottieAnimation</span><span class="p">,</span> <span class="n">FLOW_PARENT_RELATIVE</span><span class="p">,</span> <span class="n">ALIGN_LEFT</span><span class="p">,</span> <span class="n">ALIGN_TOP</span><span class="p">,</span> <span class="n">ALIGN_RIGHT</span><span class="p">,</span> <span class="n">ALIGN_BOTTOM</span><span class="p">,</span> <span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">VECTOR_WIDTH</span><span class="p">,</span> <span class="n">VECTOR_CENTER_LINE</span><span class="p">,</span> <span class="n">VECTOR_LINE_INDENT_PX</span><span class="p">,</span> <span class="n">VECTOR_POLY</span><span class="p">,</span> <span class="n">VECTOR_QUADS</span><span class="p">,</span> <span class="n">FFT_NONE</span><span class="p">,</span> <span class="n">O_HORIZONTAL</span><span class="p">,</span> <span class="n">TOVERFLOW_CLIP</span><span class="p">,</span> <span class="n">DIR_UP</span><span class="p">,</span> <span class="n">EVENT_BREAK</span><span class="p">,</span> <span class="n">EVENT_CONTINUE</span><span class="p">,</span> <span class="n">Linear</span><span class="p">,</span> <span class="n">InQuad</span><span class="p">,</span> <span class="n">OutQuad</span><span class="p">,</span> <span class="n">InOutQuad</span><span class="p">,</span> <span class="n">InCubic</span><span class="p">,</span> <span class="n">OutCubic</span><span class="p">,</span> <span class="n">InOutCubic</span><span class="p">,</span> <span class="n">InQuintic</span><span class="p">,</span> <span class="n">OutQuintic</span><span class="p">,</span> <span class="n">InOutQuintic</span><span class="p">,</span> <span class="n">InQuart</span><span class="p">,</span> <span class="n">OutQuart</span><span class="p">,</span> <span class="n">InOutQuart</span><span class="p">,</span> <span class="n">InSine</span><span class="p">,</span> <span class="n">OutSine</span><span class="p">,</span> <span class="n">InOutSine</span><span class="p">,</span> <span class="n">InCirc</span><span class="p">,</span> <span class="n">OutCirc</span><span class="p">,</span> <span class="n">InOutCirc</span><span class="p">,</span> <span class="n">InExp</span><span class="p">,</span> <span class="n">OutExp</span><span class="p">,</span> <span class="n">InOutExp</span><span class="p">,</span> <span class="n">InElastic</span><span class="p">,</span> <span class="n">OutElastic</span><span class="p">,</span> <span class="n">InOutElastic</span><span class="p">,</span> <span class="n">InBack</span><span class="p">,</span> <span class="n">OutBack</span><span class="p">,</span> <span class="n">InOutBack</span><span class="p">,</span> <span class="n">InBounce</span><span class="p">,</span> <span class="n">OutBounce</span><span class="p">,</span> <span class="n">InOutBounce</span><span class="p">,</span> <span class="n">InOutBezier</span><span class="p">,</span> <span class="n">CosineFull</span><span class="p">,</span> <span class="n">InStep</span><span class="p">,</span> <span class="n">OutStep</span><span class="p">,</span> <span class="n">Blink</span><span class="p">,</span> <span class="n">DoubleBlink</span><span class="p">,</span> <span class="n">BlinkSin</span><span class="p">,</span> <span class="n">BlinkCos</span><span class="p">,</span> <span class="n">Discrete8</span><span class="p">,</span> <span class="n">Shake4</span><span class="p">,</span> <span class="n">Shake6</span><span class="p">,</span> <span class="n">S_KB_FOCUS</span><span class="p">,</span> <span class="n">S_HOVER</span><span class="p">,</span> <span class="n">S_TOP_HOVER</span><span class="p">,</span> <span class="n">S_ACTIVE</span><span class="p">,</span> <span class="n">S_MOUSE_ACTIVE</span><span class="p">,</span> <span class="n">S_KBD_ACTIVE</span><span class="p">,</span> <span class="n">S_HOTKEY_ACTIVE</span><span class="p">,</span> <span class="n">S_TOUCH_ACTIVE</span><span class="p">,</span> <span class="n">S_JOYSTICK_ACTIVE</span><span class="p">,</span> <span class="n">S_VR_ACTIVE</span><span class="p">,</span> <span class="n">S_DRAG</span><span class="p">,</span> <span class="n">MR_NONE</span><span class="p">,</span> <span class="n">MR_T</span><span class="p">,</span> <span class="n">MR_R</span><span class="p">,</span> <span class="n">MR_B</span><span class="p">,</span> <span class="n">MR_L</span><span class="p">,</span> <span class="n">MR_LT</span><span class="p">,</span> <span class="n">MR_RT</span><span class="p">,</span> <span class="n">MR_LB</span><span class="p">,</span> <span class="n">MR_RB</span><span class="p">,</span> <span class="n">MR_AREA</span><span class="p">,</span> <span class="n">FMT_NO_WRAP</span><span class="p">,</span> <span class="n">FMT_KEEP_SPACES</span><span class="p">,</span> <span class="n">FMT_IGNORE_TAGS</span><span class="p">,</span> <span class="n">FMT_HIDE_ELLIPSIS</span><span class="p">,</span> <span class="n">FMT_AS_IS</span><span class="p">,</span> <span class="n">DEVID_KEYBOARD</span><span class="p">,</span> <span class="n">KEEP_ASPECT_NONE</span><span class="p">,</span> <span class="n">KEEP_ASPECT_FIT</span><span class="p">,</span> <span class="n">KEEP_ASPECT_FILL</span><span class="p">,</span> <span class="n">AXIS_L_THUMB_H</span><span class="p">,</span> <span class="n">AXIS_L_THUMB_V</span><span class="p">,</span> <span class="n">AXIS_R_THUMB_H</span><span class="p">,</span> <span class="n">AXIS_R_THUMB_V</span><span class="p">,</span> <span class="n">AXIS_L_TRIGGER</span><span class="p">,</span> <span class="n">AXIS_R_TRIGGER</span><span class="p">,</span> <span class="n">AXIS_LR_TRIGGER</span><span class="p">,</span> <span class="n">XMB_STOP</span><span class="p">,</span> <span class="n">R_PROCESSED</span><span class="p">,</span> <span class="n">SIZE_TO_CONTENT</span><span class="p">,</span> <span class="n">Fonts</span><span class="p">,</span> <span class="n">AnimProp</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">bgColor</span><span class="p">,</span> <span class="n">fgColor</span><span class="p">,</span> <span class="n">fillColor</span><span class="p">,</span> <span class="n">borderColor</span><span class="p">,</span> <span class="n">opacity</span><span class="p">,</span> <span class="n">rotate</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">translate</span><span class="p">,</span> <span class="n">fValue</span><span class="p">,</span> <span class="n">picSaturate</span><span class="p">,</span> <span class="n">brightness</span><span class="p">,</span> <span class="n">Behaviors</span><span class="p">,</span> <span class="n">ScrollHandler</span><span class="p">,</span> <span class="n">JoystickAxisObservable</span><span class="p">,</span> <span class="n">ElemGroup</span><span class="p">,</span> <span class="n">Behavior</span><span class="p">,</span> <span class="n">Picture</span><span class="p">,</span> <span class="n">Immediate</span><span class="p">,</span> <span class="n">FormattedText</span><span class="p">,</span> <span class="n">IGenVideoPlayer</span><span class="p">,</span> <span class="n">IGenSound</span><span class="p">,</span> <span class="n">DragAndDropState</span><span class="p">,</span> <span class="n">EventDataRect</span><span class="p">,</span> <span class="n">MouseClickEventData</span><span class="p">,</span> <span class="n">HotkeyEventData</span><span class="p">,</span> <span class="n">HoverEventData</span><span class="p">,</span> <span class="n">MoveToAreaTarget</span><span class="p">,</span> <span class="n">Color</span><span class="p">,</span> <span class="n">sw</span><span class="p">,</span> <span class="n">sh</span><span class="p">,</span> <span class="n">flex</span><span class="p">,</span> <span class="n">fontH</span><span class="p">,</span> <span class="n">pw</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">elemw</span><span class="p">,</span> <span class="n">elemh</span><span class="p">,</span> <span class="n">locate_element_source</span><span class="p">,</span> <span class="n">get_element_info</span><span class="p">,</span> <span class="n">get_font_metrics</span><span class="p">,</span> <span class="n">setFontDefHt</span><span class="p">,</span> <span class="n">getFontDefHt</span><span class="p">,</span> <span class="n">getFontInitialHt</span><span class="p">,</span> <span class="n">calc_str_box</span><span class="p">,</span> <span class="n">ElementRef</span> <span class="p">}</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s2">&quot;daRg&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="s2">&quot;daRg&quot;</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<div class="highlight-sq notranslate"><div class="highlight"><pre><span></span><span class="c1">//&#39;daRg&#39; exports:</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">KBD_BIT_CAPS_LOCK</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">KBD_BIT_NUM_LOCK</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">KBD_BIT_SCROLL_LOCK</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_NONE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_SCENE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_VRSPACE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_HEAD</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_LEFTHAND</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_RIGHTHAND</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_ANCHOR_ENTITY</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_GEOMETRY_NONE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_GEOMETRY_RECTANGLE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RC_NONE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RC_FACE_LEFT_HAND</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RC_FACE_RIGHT_HAND</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RC_FACE_HEAD</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RC_FACE_HEAD_LOCK_Y</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RC_FACE_ENTITY</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RENDER_CAST_SHADOW</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RENDER_OPAQUE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PANEL_RENDER_ALWAYS_ON_TOP</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">GuiScene</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">SceneConfig</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">anim_start</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">anim_request_stop</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">anim_skip</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">anim_skip_delay</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">set_kb_focus</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">capture_kb_focus</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">calc_comp_size</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="nx">or</span><span class="w"> </span><span class="nx">table</span><span class="w"> </span><span class="nx">or</span><span class="w"> </span><span class="nx">closure_and_nativeclosure</span><span class="w"> </span><span class="nx">or</span><span class="w"> </span><span class="nx">class_instance</span><span class="w"> </span><span class="nx">or</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">move_mouse_cursor</span><span class="p">(</span><span class="nx">arg0</span><span class="p">,</span><span class="w"> </span><span class="nx">arg1</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="o">:</span><span class="w"> </span><span class="nx">any_type</span><span class="p">,</span><span class="w"> </span><span class="nx">bool</span><span class="p">,</span><span class="w"> </span><span class="nx">any_type</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_mouse_cursor_pos</span><span class="p">(</span><span class="nx">arg0</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="o">:</span><span class="w"> </span><span class="nx">class_instance</span><span class="p">,</span><span class="w"> </span><span class="nx">any_type</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">resolve_button_id</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">gui_scene</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">LottieAnimation</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FLOW_PARENT_RELATIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ALIGN_LEFT</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ALIGN_TOP</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ALIGN_RIGHT</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ALIGN_BOTTOM</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">VECTOR_WIDTH</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">VECTOR_CENTER_LINE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">VECTOR_LINE_INDENT_PX</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">VECTOR_POLY</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">VECTOR_QUADS</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FFT_NONE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">O_HORIZONTAL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">TOVERFLOW_CLIP</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">DIR_UP</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">EVENT_BREAK</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">EVENT_CONTINUE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Linear</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InQuad</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutQuad</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutQuad</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InCubic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutCubic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutCubic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InQuintic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutQuintic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutQuintic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InQuart</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutQuart</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutQuart</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InSine</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutSine</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutSine</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InCirc</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutCirc</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutCirc</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InExp</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutExp</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutExp</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InElastic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutElastic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutElastic</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InBack</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutBack</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutBack</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InBounce</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutBounce</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutBounce</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InOutBezier</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">CosineFull</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InStep</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OutStep</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Blink</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">DoubleBlink</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">BlinkSin</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">BlinkCos</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Discrete8</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Shake4</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Shake6</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_KB_FOCUS</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_HOVER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_TOP_HOVER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_MOUSE_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_KBD_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_HOTKEY_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_TOUCH_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_JOYSTICK_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_VR_ACTIVE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">S_DRAG</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_NONE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_T</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_R</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_B</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_L</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_LT</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_RT</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_LB</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_RB</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MR_AREA</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FMT_NO_WRAP</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FMT_KEEP_SPACES</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FMT_IGNORE_TAGS</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FMT_HIDE_ELLIPSIS</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FMT_AS_IS</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">DEVID_KEYBOARD</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">KEEP_ASPECT_NONE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">KEEP_ASPECT_FIT</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">KEEP_ASPECT_FILL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_L_THUMB_H</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_L_THUMB_V</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_R_THUMB_H</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_R_THUMB_V</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_L_TRIGGER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_R_TRIGGER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">AXIS_LR_TRIGGER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">XMB_STOP</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">R_PROCESSED</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">SIZE_TO_CONTENT</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">Fonts</span>
+<span class="w">  </span><span class="nx">enum</span><span class="w"> </span><span class="nx">AnimProp</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">color</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">bgColor</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">fgColor</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">fillColor</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">borderColor</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">opacity</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">rotate</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">scale</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">translate</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">fValue</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">picSaturate</span>
+<span class="w">  </span><span class="nx">value</span><span class="w"> </span><span class="nx">brightness</span>
+<span class="w">  </span><span class="nx">table</span><span class="w"> </span><span class="nx">Behaviors</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">ScrollHandler</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">JoystickAxisObservable</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">ElemGroup</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">Behavior</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">Picture</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">Immediate</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">FormattedText</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">IGenVideoPlayer</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">IGenSound</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">DragAndDropState</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">EventDataRect</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">MouseClickEventData</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">HotkeyEventData</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">HoverEventData</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">MoveToAreaTarget</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">Color</span><span class="p">(</span><span class="nx">arg0</span><span class="p">,</span><span class="w"> </span><span class="nx">arg1</span><span class="p">,</span><span class="w"> </span><span class="nx">arg2</span><span class="p">,</span><span class="w"> </span><span class="nx">arg3</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="p">,</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="p">,</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="p">,</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="p">,</span><span class="w"> </span><span class="nx">any_type</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">sw</span><span class="p">(</span><span class="nx">percent</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">float</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="nx">percent</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">float</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">flex</span><span class="p">(</span><span class="nx">arg0</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="p">,</span><span class="w"> </span><span class="nx">any_type</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">fontH</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">pw</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">ph</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">elemw</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">elemh</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer_or_float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">locate_element_source</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">class_instance</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_element_info</span><span class="p">(</span><span class="nx">arg0</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">class_instance</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_font_metrics</span><span class="p">(</span><span class="nx">fontId</span><span class="p">,</span><span class="w"> </span><span class="nx">fontHt</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer</span><span class="p">,</span><span class="w"> </span><span class="nx">float</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">table</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">setFontDefHt</span><span class="p">(</span><span class="nx">font_name</span><span class="p">,</span><span class="w"> </span><span class="nx">pix_ht</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="p">,</span><span class="w"> </span><span class="nx">integer</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">bool</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">getFontDefHt</span><span class="p">(</span><span class="nx">font_name</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">integer</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">getFontInitialHt</span><span class="p">(</span><span class="nx">font_name</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">integer</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">calc_str_box</span><span class="p">(</span><span class="nx">element_or_text</span><span class="p">,</span><span class="w"> </span><span class="nx">element_or_style</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="o">|</span><span class="nx">closure_and_nativeclosure</span><span class="o">|</span><span class="nx">table</span><span class="p">,</span><span class="w"> </span><span class="nx">table</span><span class="o">|</span><span class="nx">closure_and_nativeclosure</span><span class="o">|</span><span class="kc">null</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">array</span>
+<span class="w">  </span><span class="kd">class</span><span class="w"> </span><span class="nx">ElementRef</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const KBD_BIT_CAPS_LOCK = 1">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">KBD_BIT_CAPS_LOCK</span> <span class="pre">=</span> <span class="pre">1</span></span><a class="headerlink" href="#const KBD_BIT_CAPS_LOCK = 1" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const KBD_BIT_NUM_LOCK = 2">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">KBD_BIT_NUM_LOCK</span> <span class="pre">=</span> <span class="pre">2</span></span><a class="headerlink" href="#const KBD_BIT_NUM_LOCK = 2" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const KBD_BIT_SCROLL_LOCK = 4">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">KBD_BIT_SCROLL_LOCK</span> <span class="pre">=</span> <span class="pre">4</span></span><a class="headerlink" href="#const KBD_BIT_SCROLL_LOCK = 4" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_NONE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_NONE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_NONE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_SCENE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_SCENE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_SCENE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_VRSPACE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_VRSPACE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_VRSPACE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_HEAD = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_HEAD</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_HEAD = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_LEFTHAND = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_LEFTHAND</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_LEFTHAND = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_RIGHTHAND = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_RIGHTHAND</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_RIGHTHAND = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_ANCHOR_ENTITY = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_ANCHOR_ENTITY</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_ANCHOR_ENTITY = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_GEOMETRY_NONE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_GEOMETRY_NONE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_GEOMETRY_NONE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_GEOMETRY_RECTANGLE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_GEOMETRY_RECTANGLE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_GEOMETRY_RECTANGLE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RC_NONE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RC_NONE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RC_NONE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RC_FACE_LEFT_HAND = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RC_FACE_LEFT_HAND</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RC_FACE_LEFT_HAND = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RC_FACE_RIGHT_HAND = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RC_FACE_RIGHT_HAND</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RC_FACE_RIGHT_HAND = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RC_FACE_HEAD = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RC_FACE_HEAD</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RC_FACE_HEAD = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RC_FACE_HEAD_LOCK_Y = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RC_FACE_HEAD_LOCK_Y</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RC_FACE_HEAD_LOCK_Y = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RC_FACE_ENTITY = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RC_FACE_ENTITY</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RC_FACE_ENTITY = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RENDER_CAST_SHADOW = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RENDER_CAST_SHADOW</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RENDER_CAST_SHADOW = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RENDER_OPAQUE = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RENDER_OPAQUE</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RENDER_OPAQUE = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PANEL_RENDER_ALWAYS_ON_TOP = int">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PANEL_RENDER_ALWAYS_ON_TOP</span> <span class="pre">=</span> <span class="pre">int</span></span><a class="headerlink" href="#const PANEL_RENDER_ALWAYS_ON_TOP = int" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<section id="class-guiscene">
+<h2>class GuiScene<a class="headerlink" href="#class-guiscene" title="Permalink to this heading"></a></h2>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.setUpdateHandler">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">setUpdateHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.setUpdateHandler" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">null()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">null</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.setShutdownHandler">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">setShutdownHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.setShutdownHandler" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">null()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">null</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.setHotkeysNavHandler">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">setHotkeysNavHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.setHotkeysNavHandler" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">null()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">null</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.addPanel">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">addPanel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.addPanel" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg2</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">table()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:3</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">integer,</span> <span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">table</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.removePanel">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">removePanel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.removePanel" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">integer</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.mark_panel_dirty">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">mark_panel_dirty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.mark_panel_dirty" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">integer</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.setXmbFocus">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">setXmbFocus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.setXmbFocus" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">null</span> <span class="pre">or</span> <span class="pre">table()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>...</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – this function accepts unlimited arguments</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">null</span> <span class="pre">or</span> <span class="pre">table</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.getCompAABBbyKey">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">getCompAABBbyKey</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.getCompAABBbyKey" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.setConfigProps">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">setConfigProps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.setConfigProps" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">table()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">table</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.haveActiveCursorOnPanels">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">haveActiveCursorOnPanels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.haveActiveCursorOnPanels" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.clearTimer">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">clearTimer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.clearTimer" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.config">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#property GuiScene.config" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.getAllObservables">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">getAllObservables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.getAllObservables" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.cursorPresent">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">cursorPresent</span></span><a class="headerlink" href="#property GuiScene.cursorPresent" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.cursorOverStickScroll">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">cursorOverStickScroll</span></span><a class="headerlink" href="#property GuiScene.cursorOverStickScroll" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.cursorOverClickable">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">cursorOverClickable</span></span><a class="headerlink" href="#property GuiScene.cursorOverClickable" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.hoveredClickableInfo">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">hoveredClickableInfo</span></span><a class="headerlink" href="#property GuiScene.hoveredClickableInfo" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.keyboardLayout">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">keyboardLayout</span></span><a class="headerlink" href="#property GuiScene.keyboardLayout" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.keyboardLocks">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">keyboardLocks</span></span><a class="headerlink" href="#property GuiScene.keyboardLocks" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.updateCounter">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">updateCounter</span></span><a class="headerlink" href="#property GuiScene.updateCounter" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.circleButtonAsAction">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">circleButtonAsAction</span></span><a class="headerlink" href="#property GuiScene.circleButtonAsAction" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property GuiScene.xmbMode">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">xmbMode</span></span><a class="headerlink" href="#property GuiScene.xmbMode" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.getJoystickAxis">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">getJoystickAxis</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.getJoystickAxis" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method GuiScene.enableInput">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">GuiScene.</span></span><span class="sig-name descname"><span class="pre">enableInput</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method GuiScene.enableInput" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="class-sceneconfig">
+<h2>class SceneConfig<a class="headerlink" href="#class-sceneconfig" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.defaultFont">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">defaultFont</span></span><a class="headerlink" href="#const SceneConfig.defaultFont" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.defaultFontSize">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">defaultFontSize</span></span><a class="headerlink" href="#const SceneConfig.defaultFontSize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.kbCursorControl">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">kbCursorControl</span></span><a class="headerlink" href="#const SceneConfig.kbCursorControl" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorControl">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorControl</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorControl" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorSpeed">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorSpeed</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorSpeed" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorHoverMaxTime">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorHoverMaxTime</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorHoverMaxTime" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorAxisV">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorAxisV</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorAxisV" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorAxisH">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorAxisH</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorAxisH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const gamepadCursorHoverMinMul">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">gamepadCursorHoverMinMul</span></span><a class="headerlink" href="#const gamepadCursorHoverMinMul" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorHoverMaxMul">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorHoverMaxMul</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorHoverMaxMul" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorDeadZone">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorDeadZone</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorDeadZone" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.gamepadCursorNonLin">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">gamepadCursorNonLin</span></span><a class="headerlink" href="#const SceneConfig.gamepadCursorNonLin" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.reportNestedWatchedUpdate">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">reportNestedWatchedUpdate</span></span><a class="headerlink" href="#const SceneConfig.reportNestedWatchedUpdate" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.joystickScrollAxisH">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">joystickScrollAxisH</span></span><a class="headerlink" href="#const SceneConfig.joystickScrollAxisH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.joystickScrollAxisV">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">joystickScrollAxisV</span></span><a class="headerlink" href="#const SceneConfig.joystickScrollAxisV" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.clickRumbleEnabled">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">clickRumbleEnabled</span></span><a class="headerlink" href="#const SceneConfig.clickRumbleEnabled" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.clickRumbleLoFreq">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">clickRumbleLoFreq</span></span><a class="headerlink" href="#const SceneConfig.clickRumbleLoFreq" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.clickRumbleHiFreq">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">clickRumbleHiFreq</span></span><a class="headerlink" href="#const SceneConfig.clickRumbleHiFreq" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.clickRumbleDuration">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">clickRumbleDuration</span></span><a class="headerlink" href="#const SceneConfig.clickRumbleDuration" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.dirPadRepeatDelay">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">dirPadRepeatDelay</span></span><a class="headerlink" href="#const SceneConfig.dirPadRepeatDelay" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.dirPadRepeatTime">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">dirPadRepeatTime</span></span><a class="headerlink" href="#const SceneConfig.dirPadRepeatTime" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.useDefaultCursor">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">useDefaultCursor</span></span><a class="headerlink" href="#const SceneConfig.useDefaultCursor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.defaultCursor">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">defaultCursor</span></span><a class="headerlink" href="#const SceneConfig.defaultCursor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SceneConfig.clickPriority">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">clickPriority</span></span><a class="headerlink" href="#const SceneConfig.clickPriority" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property SceneConfig.defSceneBgColor">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">defSceneBgColor</span></span><a class="headerlink" href="#property SceneConfig.defSceneBgColor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method SceneConfig.setClickButtons">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">setClickButtons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method SceneConfig.setClickButtons" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">array()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance,</span> <span class="pre">array</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method SceneConfig.getClickButtons">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">SceneConfig.</span></span><span class="sig-name descname"><span class="pre">getClickButtons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method SceneConfig.getClickButtons" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function anim_start">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">anim_start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function anim_start" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function anim_request_stop">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">anim_request_stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function anim_request_stop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function anim_skip">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">anim_skip</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function anim_skip" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function anim_skip_delay">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">anim_skip_delay</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function anim_skip_delay" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function set_kb_focus">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">set_kb_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function set_kb_focus" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function capture_kb_focus">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">capture_kb_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function capture_kb_focus" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function calc_comp_size">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">calc_comp_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function calc_comp_size" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">null</span> <span class="pre">or</span> <span class="pre">table</span> <span class="pre">or</span> <span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">class_instance</span> <span class="pre">or</span> <span class="pre">class()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">null</span> <span class="pre">or</span> <span class="pre">table</span> <span class="pre">or</span> <span class="pre">closure_and_nativeclosure</span> <span class="pre">or</span> <span class="pre">class_instance</span> <span class="pre">or</span> <span class="pre">class</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function move_mouse_cursor">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">move_mouse_cursor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function move_mouse_cursor" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">bool()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>...</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – this function accepts unlimited arguments</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">any_type,</span> <span class="pre">bool</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_mouse_cursor_pos">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_mouse_cursor_pos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function get_mouse_cursor_pos" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>...</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – this function accepts unlimited arguments</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function resolve_button_id">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">resolve_button_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function resolve_button_id" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">string</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="gui_scene = instance of GuiScene">
+<span class="sig-name descname"><span class="pre">gui_scene</span> <span class="pre">=</span> <span class="pre">instance</span> <span class="pre">of</span> <span class="pre">GuiScene</span></span><a class="headerlink" href="#gui_scene = instance of GuiScene" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">GuiScene</span></code></p>
+</dd></dl>
+
+</section>
+<section id="class-lottieanimation-extends-picture">
+<h2>class LottieAnimation extends Picture<a class="headerlink" href="#class-lottieanimation-extends-picture" title="Permalink to this heading"></a></h2>
+<dl class="sq method">
+<dt class="sig sig-object sq" id="LottieAnimation">
+<span class="sig-name descname"><span class="pre">LottieAnimation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#LottieAnimation" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">null</span> <span class="pre">or</span> <span class="pre">string()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">null</span> <span class="pre">or</span> <span class="pre">string</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FLOW_PARENT_RELATIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FLOW_PARENT_RELATIVE</span></span><a class="headerlink" href="#const FLOW_PARENT_RELATIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ALIGN_LEFT = ALIGN_LEFT">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ALIGN_LEFT</span> <span class="pre">=</span> <span class="pre">ALIGN_LEFT</span></span><a class="headerlink" href="#const ALIGN_LEFT = ALIGN_LEFT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ALIGN_TOP = ALIGN_TOP">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ALIGN_TOP</span> <span class="pre">=</span> <span class="pre">ALIGN_TOP</span></span><a class="headerlink" href="#const ALIGN_TOP = ALIGN_TOP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ALIGN_RIGHT = ALIGN_RIGHT">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ALIGN_RIGHT</span> <span class="pre">=</span> <span class="pre">ALIGN_RIGHT</span></span><a class="headerlink" href="#const ALIGN_RIGHT = ALIGN_RIGHT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ALIGN_BOTTOM = ALIGN_BOTTOM">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ALIGN_BOTTOM</span> <span class="pre">=</span> <span class="pre">ALIGN_BOTTOM</span></span><a class="headerlink" href="#const ALIGN_BOTTOM = ALIGN_BOTTOM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ALIGN_CENTER = ALIGN_CENTER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ALIGN_CENTER</span> <span class="pre">=</span> <span class="pre">ALIGN_CENTER</span></span><a class="headerlink" href="#const ALIGN_CENTER = ALIGN_CENTER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const VECTOR_WIDTH">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">VECTOR_WIDTH</span></span><a class="headerlink" href="#const VECTOR_WIDTH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const VECTOR_CENTER_LINE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">VECTOR_CENTER_LINE</span></span><a class="headerlink" href="#const VECTOR_CENTER_LINE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const VECTOR_LINE_INDENT_PX">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">VECTOR_LINE_INDENT_PX</span></span><a class="headerlink" href="#const VECTOR_LINE_INDENT_PX" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const VECTOR_POLY">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">VECTOR_POLY</span></span><a class="headerlink" href="#const VECTOR_POLY" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const VECTOR_QUADS">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">VECTOR_QUADS</span></span><a class="headerlink" href="#const VECTOR_QUADS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FFT_NONE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FFT_NONE</span></span><a class="headerlink" href="#const FFT_NONE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const O_HORIZONTAL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">O_HORIZONTAL</span></span><a class="headerlink" href="#const O_HORIZONTAL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const TOVERFLOW_CLIP">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">TOVERFLOW_CLIP</span></span><a class="headerlink" href="#const TOVERFLOW_CLIP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const DIR_UP">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">DIR_UP</span></span><a class="headerlink" href="#const DIR_UP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const EVENT_BREAK = GuiScene::EVENT_BREAK">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">EVENT_BREAK</span> <span class="pre">=</span> <span class="pre">GuiScene::EVENT_BREAK</span></span><a class="headerlink" href="#const EVENT_BREAK = GuiScene::EVENT_BREAK" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const EVENT_CONTINUE = GuiScene::EVENT_CONTINUE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">EVENT_CONTINUE</span> <span class="pre">=</span> <span class="pre">GuiScene::EVENT_CONTINUE</span></span><a class="headerlink" href="#const EVENT_CONTINUE = GuiScene::EVENT_CONTINUE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Linear">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Linear</span></span><a class="headerlink" href="#const Linear" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InQuad">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InQuad</span></span><a class="headerlink" href="#const InQuad" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutQuad">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutQuad</span></span><a class="headerlink" href="#const OutQuad" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutQuad">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutQuad</span></span><a class="headerlink" href="#const InOutQuad" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InCubic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InCubic</span></span><a class="headerlink" href="#const InCubic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutCubic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutCubic</span></span><a class="headerlink" href="#const OutCubic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutCubic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutCubic</span></span><a class="headerlink" href="#const InOutCubic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InQuintic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InQuintic</span></span><a class="headerlink" href="#const InQuintic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutQuintic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutQuintic</span></span><a class="headerlink" href="#const OutQuintic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutQuintic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutQuintic</span></span><a class="headerlink" href="#const InOutQuintic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InQuart">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InQuart</span></span><a class="headerlink" href="#const InQuart" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutQuart">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutQuart</span></span><a class="headerlink" href="#const OutQuart" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutQuart">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutQuart</span></span><a class="headerlink" href="#const InOutQuart" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InSine">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InSine</span></span><a class="headerlink" href="#const InSine" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutSine">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutSine</span></span><a class="headerlink" href="#const OutSine" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutSine">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutSine</span></span><a class="headerlink" href="#const InOutSine" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InCirc">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InCirc</span></span><a class="headerlink" href="#const InCirc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutCirc">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutCirc</span></span><a class="headerlink" href="#const OutCirc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutCirc">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutCirc</span></span><a class="headerlink" href="#const InOutCirc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InExp">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InExp</span></span><a class="headerlink" href="#const InExp" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutExp">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutExp</span></span><a class="headerlink" href="#const OutExp" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutExp">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutExp</span></span><a class="headerlink" href="#const InOutExp" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InElastic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InElastic</span></span><a class="headerlink" href="#const InElastic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutElastic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutElastic</span></span><a class="headerlink" href="#const OutElastic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutElastic">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutElastic</span></span><a class="headerlink" href="#const InOutElastic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InBack">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InBack</span></span><a class="headerlink" href="#const InBack" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutBack">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutBack</span></span><a class="headerlink" href="#const OutBack" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutBack">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutBack</span></span><a class="headerlink" href="#const InOutBack" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InBounce">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InBounce</span></span><a class="headerlink" href="#const InBounce" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutBounce">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutBounce</span></span><a class="headerlink" href="#const OutBounce" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutBounce">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutBounce</span></span><a class="headerlink" href="#const InOutBounce" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InOutBezier">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InOutBezier</span></span><a class="headerlink" href="#const InOutBezier" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const CosineFull">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">CosineFull</span></span><a class="headerlink" href="#const CosineFull" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InStep">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InStep</span></span><a class="headerlink" href="#const InStep" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OutStep">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OutStep</span></span><a class="headerlink" href="#const OutStep" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Blink">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Blink</span></span><a class="headerlink" href="#const Blink" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const DoubleBlink">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">DoubleBlink</span></span><a class="headerlink" href="#const DoubleBlink" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const BlinkSin">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">BlinkSin</span></span><a class="headerlink" href="#const BlinkSin" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const BlinkCos">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">BlinkCos</span></span><a class="headerlink" href="#const BlinkCos" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Discrete8">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Discrete8</span></span><a class="headerlink" href="#const Discrete8" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Shake4">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Shake4</span></span><a class="headerlink" href="#const Shake4" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Shake6">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Shake6</span></span><a class="headerlink" href="#const Shake6" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Easing function for prebuilt animations functions.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_KB_FOCUS">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_KB_FOCUS</span></span><a class="headerlink" href="#const S_KB_FOCUS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>State flag for keyboard focus.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_HOVER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_HOVER</span></span><a class="headerlink" href="#const S_HOVER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_TOP_HOVER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_TOP_HOVER</span></span><a class="headerlink" href="#const S_TOP_HOVER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_ACTIVE</span></span><a class="headerlink" href="#const S_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for ‘pressed’ button.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_MOUSE_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_MOUSE_ACTIVE</span></span><a class="headerlink" href="#const S_MOUSE_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for ‘pressed’ button with mouse.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_KBD_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_KBD_ACTIVE</span></span><a class="headerlink" href="#const S_KBD_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for ‘pressed’ button with keyboard.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_HOTKEY_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_HOTKEY_ACTIVE</span></span><a class="headerlink" href="#const S_HOTKEY_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for ‘pressed’ button with hotkey.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_TOUCH_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_TOUCH_ACTIVE</span></span><a class="headerlink" href="#const S_TOUCH_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for pressed button with touch device.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_JOYSTICK_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_JOYSTICK_ACTIVE</span></span><a class="headerlink" href="#const S_JOYSTICK_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for pressed button with joystick/gamepad device.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_VR_ACTIVE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_VR_ACTIVE</span></span><a class="headerlink" href="#const S_VR_ACTIVE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for pressed button with VR controller.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const S_DRAG">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">S_DRAG</span></span><a class="headerlink" href="#const S_DRAG" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>state flag for dragged state.</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_NONE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_NONE</span></span><a class="headerlink" href="#const MR_NONE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>MOVE_RESIZE Beahvior constants, to define where was point started move or resize</p>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_T">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_T</span></span><a class="headerlink" href="#const MR_T" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_R">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_R</span></span><a class="headerlink" href="#const MR_R" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_B">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_B</span></span><a class="headerlink" href="#const MR_B" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_L">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_L</span></span><a class="headerlink" href="#const MR_L" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_LT">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_LT</span></span><a class="headerlink" href="#const MR_LT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_RT">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_RT</span></span><a class="headerlink" href="#const MR_RT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_LB">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_LB</span></span><a class="headerlink" href="#const MR_LB" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_RB">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_RB</span></span><a class="headerlink" href="#const MR_RB" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MR_AREA">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MR_AREA</span></span><a class="headerlink" href="#const MR_AREA" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FMT_NO_WRAP">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FMT_NO_WRAP</span></span><a class="headerlink" href="#const FMT_NO_WRAP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FMT_KEEP_SPACES">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FMT_KEEP_SPACES</span></span><a class="headerlink" href="#const FMT_KEEP_SPACES" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FMT_IGNORE_TAGS">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FMT_IGNORE_TAGS</span></span><a class="headerlink" href="#const FMT_IGNORE_TAGS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FMT_HIDE_ELLIPSIS">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FMT_HIDE_ELLIPSIS</span></span><a class="headerlink" href="#const FMT_HIDE_ELLIPSIS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FMT_AS_IS">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FMT_AS_IS</span></span><a class="headerlink" href="#const FMT_AS_IS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const DEVID_KEYBOARD">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">DEVID_KEYBOARD</span></span><a class="headerlink" href="#const DEVID_KEYBOARD" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const KEEP_ASPECT_NONE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">KEEP_ASPECT_NONE</span></span><a class="headerlink" href="#const KEEP_ASPECT_NONE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const KEEP_ASPECT_FIT">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">KEEP_ASPECT_FIT</span></span><a class="headerlink" href="#const KEEP_ASPECT_FIT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const KEEP_ASPECT_FILL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">KEEP_ASPECT_FILL</span></span><a class="headerlink" href="#const KEEP_ASPECT_FILL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_L_THUMB_H">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_L_THUMB_H</span></span><a class="headerlink" href="#const AXIS_L_THUMB_H" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_L_THUMB_V">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_L_THUMB_V</span></span><a class="headerlink" href="#const AXIS_L_THUMB_V" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_R_THUMB_H">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_R_THUMB_H</span></span><a class="headerlink" href="#const AXIS_R_THUMB_H" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_R_THUMB_V">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_R_THUMB_V</span></span><a class="headerlink" href="#const AXIS_R_THUMB_V" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_L_TRIGGER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_L_TRIGGER</span></span><a class="headerlink" href="#const AXIS_L_TRIGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_R_TRIGGER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_R_TRIGGER</span></span><a class="headerlink" href="#const AXIS_R_TRIGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const AXIS_LR_TRIGGER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">AXIS_LR_TRIGGER</span></span><a class="headerlink" href="#const AXIS_LR_TRIGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const XMB_STOP">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">XMB_STOP</span></span><a class="headerlink" href="#const XMB_STOP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const R_PROCESSED">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">R_PROCESSED</span></span><a class="headerlink" href="#const R_PROCESSED" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SIZE_TO_CONTENT">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">SIZE_TO_CONTENT</span></span><a class="headerlink" href="#const SIZE_TO_CONTENT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="Fonts">
+<span class="sig-name descname"><span class="pre">Fonts</span></span><a class="headerlink" href="#Fonts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="enum-animprop">
+<h2>enum AnimProp<a class="headerlink" href="#enum-animprop" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="color">
+<span class="sig-name descname"><span class="pre">color</span></span><a class="headerlink" href="#color" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="bgColor">
+<span class="sig-name descname"><span class="pre">bgColor</span></span><a class="headerlink" href="#bgColor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="fgColor">
+<span class="sig-name descname"><span class="pre">fgColor</span></span><a class="headerlink" href="#fgColor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="fillColor">
+<span class="sig-name descname"><span class="pre">fillColor</span></span><a class="headerlink" href="#fillColor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="borderColor">
+<span class="sig-name descname"><span class="pre">borderColor</span></span><a class="headerlink" href="#borderColor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="opacity">
+<span class="sig-name descname"><span class="pre">opacity</span></span><a class="headerlink" href="#opacity" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="rotate">
+<span class="sig-name descname"><span class="pre">rotate</span></span><a class="headerlink" href="#rotate" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><a class="headerlink" href="#scale" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="translate">
+<span class="sig-name descname"><span class="pre">translate</span></span><a class="headerlink" href="#translate" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="fValue">
+<span class="sig-name descname"><span class="pre">fValue</span></span><a class="headerlink" href="#fValue" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="picSaturate">
+<span class="sig-name descname"><span class="pre">picSaturate</span></span><a class="headerlink" href="#picSaturate" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="brightness">
+<span class="sig-name descname"><span class="pre">brightness</span></span><a class="headerlink" href="#brightness" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="table-behaviors">
+<h2>table Behaviors<a class="headerlink" href="#table-behaviors" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Button">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Button</span></span><a class="headerlink" href="#const Behaviors.Button" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.TextArea">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">TextArea</span></span><a class="headerlink" href="#const Behaviors.TextArea" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.TextInput">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">TextInput</span></span><a class="headerlink" href="#const Behaviors.TextInput" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Slider">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Slider</span></span><a class="headerlink" href="#const Behaviors.Slider" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Pannable">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Pannable</span></span><a class="headerlink" href="#const Behaviors.Pannable" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Pannable2touch">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Pannable2touch</span></span><a class="headerlink" href="#const Behaviors.Pannable2touch" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.SwipeScroll">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">SwipeScroll</span></span><a class="headerlink" href="#const Behaviors.SwipeScroll" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.MoveResize">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">MoveResize</span></span><a class="headerlink" href="#const Behaviors.MoveResize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.ComboPopup">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">ComboPopup</span></span><a class="headerlink" href="#const Behaviors.ComboPopup" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.SmoothScrollStack">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">SmoothScrollStack</span></span><a class="headerlink" href="#const Behaviors.SmoothScrollStack" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Marquee">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Marquee</span></span><a class="headerlink" href="#const Behaviors.Marquee" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.WheelScroll">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">WheelScroll</span></span><a class="headerlink" href="#const Behaviors.WheelScroll" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.ScrollEvent">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">ScrollEvent</span></span><a class="headerlink" href="#const Behaviors.ScrollEvent" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.InspectPicker">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">InspectPicker</span></span><a class="headerlink" href="#const Behaviors.InspectPicker" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.RtPropUpdate">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">RtPropUpdate</span></span><a class="headerlink" href="#const Behaviors.RtPropUpdate" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.RecalcHandler">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">RecalcHandler</span></span><a class="headerlink" href="#const Behaviors.RecalcHandler" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.DragAndDrop">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">DragAndDrop</span></span><a class="headerlink" href="#const Behaviors.DragAndDrop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.FpsBar">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">FpsBar</span></span><a class="headerlink" href="#const Behaviors.FpsBar" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.LatencyBar">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">LatencyBar</span></span><a class="headerlink" href="#const Behaviors.LatencyBar" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.OverlayTransparency">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">OverlayTransparency</span></span><a class="headerlink" href="#const Behaviors.OverlayTransparency" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.BoundToArea">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">BoundToArea</span></span><a class="headerlink" href="#const Behaviors.BoundToArea" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Movie">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Movie</span></span><a class="headerlink" href="#const Behaviors.Movie" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.Parallax">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">Parallax</span></span><a class="headerlink" href="#const Behaviors.Parallax" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.PieMenu">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">PieMenu</span></span><a class="headerlink" href="#const Behaviors.PieMenu" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.TransitionSize">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">TransitionSize</span></span><a class="headerlink" href="#const Behaviors.TransitionSize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.TrackMouse">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">TrackMouse</span></span><a class="headerlink" href="#const Behaviors.TrackMouse" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.MoveToArea">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">MoveToArea</span></span><a class="headerlink" href="#const Behaviors.MoveToArea" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.ProcessPointingInput">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">ProcessPointingInput</span></span><a class="headerlink" href="#const Behaviors.ProcessPointingInput" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Behaviors.EatInput">
+<span class="sig-prename descclassname"><span class="pre">const</span> <span class="pre">Behaviors.</span></span><span class="sig-name descname"><span class="pre">EatInput</span></span><a class="headerlink" href="#const Behaviors.EatInput" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="class-scrollhandler">
+<h2>class ScrollHandler<a class="headerlink" href="#class-scrollhandler" title="Permalink to this heading"></a></h2>
+<dl class="sq method">
+<dt class="sig sig-object sq" id="ScrollHandler">
+<span class="sig-name descname"><span class="pre">ScrollHandler</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ScrollHandler" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ScrollHandler.scrollToX">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ScrollHandler.</span></span><span class="sig-name descname"><span class="pre">scrollToX</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method ScrollHandler.scrollToX" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ScrollHandler.scrollToY">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ScrollHandler.</span></span><span class="sig-name descname"><span class="pre">scrollToY</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method ScrollHandler.scrollToY" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ScrollHandler.scrollToChildren">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ScrollHandler.</span></span><span class="sig-name descname"><span class="pre">scrollToChildren</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method ScrollHandler.scrollToChildren" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property ScrollHandler.elem">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">ScrollHandler.</span></span><span class="sig-name descname"><span class="pre">elem</span></span><a class="headerlink" href="#property ScrollHandler.elem" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+</section>
+<section id="class-joystickaxisobservable">
+<h2>class JoystickAxisObservable<a class="headerlink" href="#class-joystickaxisobservable" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property JoystickAxisObservable.value">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">JoystickAxisObservable.</span></span><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#property JoystickAxisObservable.value" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="var JoystickAxisObservable.resolution">
+<span class="sig-prename descclassname"><span class="pre">var</span> <span class="pre">JoystickAxisObservable.</span></span><span class="sig-name descname"><span class="pre">resolution</span></span><a class="headerlink" href="#var JoystickAxisObservable.resolution" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="var JoystickAxisObservable.deadzone">
+<span class="sig-prename descclassname"><span class="pre">var</span> <span class="pre">JoystickAxisObservable.</span></span><span class="sig-name descname"><span class="pre">deadzone</span></span><a class="headerlink" href="#var JoystickAxisObservable.deadzone" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="class-elemgroup">
+<h2>class ElemGroup<a class="headerlink" href="#class-elemgroup" title="Permalink to this heading"></a></h2>
+</section>
+<section id="class-behavior">
+<h2>class Behavior<a class="headerlink" href="#class-behavior" title="Permalink to this heading"></a></h2>
+</section>
+<section id="class-picture">
+<h2>class Picture<a class="headerlink" href="#class-picture" title="Permalink to this heading"></a></h2>
+<dl class="sq method">
+<dt class="sig sig-object sq" id="Picture">
+<span class="sig-name descname"><span class="pre">Picture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Picture" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">null</span> <span class="pre">or</span> <span class="pre">string()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">null</span> <span class="pre">or</span> <span class="pre">string</span></code></p>
+</dd></dl>
+
+</section>
+<section id="class-immediate-extends-picture">
+<h2>class Immediate extends Picture<a class="headerlink" href="#class-immediate-extends-picture" title="Permalink to this heading"></a></h2>
+<dl class="sq method">
+<dt class="sig sig-object sq" id="Immediate">
+<span class="sig-name descname"><span class="pre">Immediate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Immediate" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">null</span> <span class="pre">or</span> <span class="pre">string()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">null</span> <span class="pre">or</span> <span class="pre">string</span></code></p>
+</dd></dl>
+
+</section>
+<section id="class-formattedtext">
+<h2>class FormattedText<a class="headerlink" href="#class-formattedtext" title="Permalink to this heading"></a></h2>
+</section>
+<section id="class-igenvideoplayer">
+<h2>class IGenVideoPlayer<a class="headerlink" href="#class-igenvideoplayer" title="Permalink to this heading"></a></h2>
+</section>
+<section id="class-igensound">
+<h2>class IGenSound<a class="headerlink" href="#class-igensound" title="Permalink to this heading"></a></h2>
+</section>
+<section id="class-draganddropstate">
+<h2>class DragAndDropState<a class="headerlink" href="#class-draganddropstate" title="Permalink to this heading"></a></h2>
+</section>
+<section id="class-eventdatarect">
+<h2>class EventDataRect<a class="headerlink" href="#class-eventdatarect" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="EventDataRect.l">
+<span class="sig-prename descclassname"><span class="pre">EventDataRect.</span></span><span class="sig-name descname"><span class="pre">l</span></span><a class="headerlink" href="#EventDataRect.l" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="EventDataRect.t">
+<span class="sig-prename descclassname"><span class="pre">EventDataRect.</span></span><span class="sig-name descname"><span class="pre">t</span></span><a class="headerlink" href="#EventDataRect.t" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="EventDataRect.r">
+<span class="sig-prename descclassname"><span class="pre">EventDataRect.</span></span><span class="sig-name descname"><span class="pre">r</span></span><a class="headerlink" href="#EventDataRect.r" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="EventDataRect.b">
+<span class="sig-prename descclassname"><span class="pre">EventDataRect.</span></span><span class="sig-name descname"><span class="pre">b</span></span><a class="headerlink" href="#EventDataRect.b" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="class-mouseclickeventdata">
+<h2>class MouseClickEventData<a class="headerlink" href="#class-mouseclickeventdata" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property MouseClickEventData.targetRect">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">MouseClickEventData.</span></span><span class="sig-name descname"><span class="pre">targetRect</span></span><a class="headerlink" href="#property MouseClickEventData.targetRect" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+</section>
+<section id="class-hotkeyeventdata">
+<h2>class HotkeyEventData<a class="headerlink" href="#class-hotkeyeventdata" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property HotkeyEventData.targetRect">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">HotkeyEventData.</span></span><span class="sig-name descname"><span class="pre">targetRect</span></span><a class="headerlink" href="#property HotkeyEventData.targetRect" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+</section>
+<section id="class-hovereventdata">
+<h2>class HoverEventData<a class="headerlink" href="#class-hovereventdata" title="Permalink to this heading"></a></h2>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="property HoverEventData.targetRect">
+<span class="sig-prename descclassname"><span class="pre">property</span> <span class="pre">HoverEventData.</span></span><span class="sig-name descname"><span class="pre">targetRect</span></span><a class="headerlink" href="#property HoverEventData.targetRect" title="Permalink to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code></p>
+</dd></dl>
+
+<dl class="sq method">
+<dt class="sig sig-object sq" id="HoverEventData">
+<span class="sig-name descname"><span class="pre">HoverEventData</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HoverEventData" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="class-movetoareatarget">
+<h2>class MoveToAreaTarget<a class="headerlink" href="#class-movetoareatarget" title="Permalink to this heading"></a></h2>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method MoveToAreaTarget.set">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">MoveToAreaTarget.</span></span><span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method MoveToAreaTarget.set" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method MoveToAreaTarget.clear">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">MoveToAreaTarget.</span></span><span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method MoveToAreaTarget.clear" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function Color">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">Color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function Color" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg2</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg3</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>...</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – this function accepts unlimited arguments</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-4</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float,</span> <span class="pre">integer_or_float,</span> <span class="pre">integer_or_float,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function sw">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">sw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">percent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function sw" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>percent</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">float()</span></code></span>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function sh">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">sh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">percent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function sh" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>percent</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">float()</span></code></span>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function flex">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">flex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function flex" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>...</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – this function accepts unlimited arguments</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function fontH">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">fontH</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function fontH" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function pw">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">pw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function pw" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function ph">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">ph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function ph" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function elemw">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">elemw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function elemw" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function elemh">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">elemh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function elemh" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer_or_float()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer_or_float</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function locate_element_source">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">locate_element_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function locate_element_source" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_element_info">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_element_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function get_element_info" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_font_metrics">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_font_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fontId</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontHt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function get_font_metrics" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fontId</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – </p></li>
+<li><p><strong>fontHt</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">float()</span></code></span>) – optional, default is _def_fontHt font height set in font</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">integer</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>font_params</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>table</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">font_params</span><a class="headerlink" href="#id1" title="Permalink to this code"></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="n">_def_fontHt</span> <span class="p">:</span> <span class="k">def</span> <span class="nf">height</span>
+  <span class="n">fontHt</span> <span class="p">:</span> <span class="n">height</span>
+  <span class="n">capsHt</span> <span class="p">:</span> <span class="n">height</span> <span class="n">of</span> <span class="n">H</span>
+  <span class="n">lineSpacing</span> <span class="p">:</span> <span class="n">linespacing</span>
+  <span class="n">ascent</span>
+  <span class="n">descent</span>
+  <span class="n">lowercaseHeight</span> <span class="p">:</span> <span class="n">height</span> <span class="n">of</span> <span class="n">x</span>
+<span class="p">}</span>
+<span class="nd">@code</span>
+</pre></div>
+</div>
+</div>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function setFontDefHt">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">setFontDefHt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_ht</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function setFontDefHt" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>font_name</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>) – </p></li>
+<li><p><strong>pix_ht</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function getFontDefHt">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">getFontDefHt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function getFontDefHt" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>font_name</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>integer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function getFontInitialHt">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">getFontInitialHt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function getFontInitialHt" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>font_name</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>integer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function calc_str_box">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">calc_str_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element_or_text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_or_style</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function calc_str_box" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_or_text</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string|closure_and_nativeclosure|table()</span></code></span>) – should be string of text or darg component description with ‘text’ in it</p></li>
+<li><p><strong>element_or_style</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">table|closure_and_nativeclosure|null()</span></code></span>) – optional, if first element is text, it should be provided with font properties</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>return array of two objects with width and height of text</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="class-elementref">
+<h2>class ElementRef<a class="headerlink" href="#class-elementref" title="Permalink to this heading"></a></h2>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getCompDesc">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getCompDesc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getCompDesc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getScreenPosX">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getScreenPosX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getScreenPosX" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getScreenPosY">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getScreenPosY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getScreenPosY" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getWidth">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getWidth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getWidth" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getHeight">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getHeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getHeight" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getContentWidth">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getContentWidth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getContentWidth" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getContentHeight">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getContentHeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getContentHeight" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getScrollOffsX">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getScrollOffsX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getScrollOffsX" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="method ElementRef.getScrollOffsY">
+<span class="sig-prename descclassname"><span class="pre">method</span> <span class="pre">ElementRef.</span></span><span class="sig-name descname"><span class="pre">getScrollOffsY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#method ElementRef.getScrollOffsY" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">class_instance()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">class_instance</span></code></p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="daRg framework" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daRg.debug.html" class="btn btn-neutral float-right" title="daRg.debug" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Jun 29, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

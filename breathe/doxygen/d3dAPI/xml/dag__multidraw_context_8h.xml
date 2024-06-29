@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__multidraw_context_8h" kind="file" language="C++">
+    <compoundname>dag_multidrawContext.h</compoundname>
+    <includes local="no">EASTL/fixed_function.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">EASTL/variant.h</includes>
+    <includes local="no">3d/dag_resPtr.h</includes>
+    <includes local="no">3d/dag_lockSbuffer.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_multidrawContext.h</label>
+        <link refid="dag__multidraw_context_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="7">
+        <label>3d/dag_lockSbuffer.h</label>
+      </node>
+      <node id="6">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="class_multidraw_context" prot="public">MultidrawContext</innerclass>
+    <innerclass refid="struct_multidraw_context_1_1_extended_draw_indexed_indirect_args" prot="private">MultidrawContext::ExtendedDrawIndexedIndirectArgs</innerclass>
+    <innerclass refid="class_multidraw_context_1_1_multidraw_render_executor" prot="public">MultidrawContext::MultidrawRenderExecutor</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>2023<sp/><sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(for<sp/>conditions<sp/>of<sp/>use<sp/>see<sp/>prog/license.txt)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/fixed_function.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_resPtr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_lockSbuffer.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>PerDrawDataT&gt;</highlight></codeline>
+<codeline lineno="23" refid="class_multidraw_context" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>eastl::string<sp/>name;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>UniqueBuf<sp/>multidrawArguments;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>UniqueBufHolder<sp/>perDrawArgsBuffer;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>uint32_t<sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>uint32_t<sp/>actualStart<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>uint32_t<sp/>lastOffset<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ExtendedDrawIndexedIndirectArgs</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>drawcallId;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>DrawIndexedIndirectArgs<sp/>args;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>usesExtendedMultiDrawStruct()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" kindref="member">d3d::get_driver_code</ref>().is(d3d::dx12);<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/>bytesCountPerDrawcall()</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>multiDrawArgsStructSize<sp/>=</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>usesExtendedMultiDrawStruct()<sp/>?<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ExtendedDrawIndexedIndirectArgs)<sp/>:<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgs);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>multiDrawArgsStructSize;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/>dwordsCountPerDrawcall()</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>multiDrawArgsStructSize<sp/>=<sp/>bytesCountPerDrawcall();</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(multiDrawArgsStructSize<sp/>%<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>multiDrawArgsStructSize<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>eastl::string<sp/>getPerDrawArgsBufferName()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>name<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;_perDrawArgsBuffer&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>needPerDrawParamsBuffer()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(PerDrawDataT)<sp/>!=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);<sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="103" refid="class_multidraw_context_1aaeb5a10d853e44d0e917377fb320d0bd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_multidraw_context_1aaeb5a10d853e44d0e917377fb320d0bd" kindref="member">MultidrawContext</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>:<sp/>name(name)<sp/>{}</highlight></codeline>
+<codeline lineno="107" refid="class_multidraw_context_1ae84438bc7fd10f189b80d08a4f054b0f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_multidraw_context_1ae84438bc7fd10f189b80d08a4f054b0f" kindref="member">MultidrawContext</ref>(<ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="111" refid="class_multidraw_context_1ab3eb913fa9c9b8f6f313bfc068e3e7dd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>&amp;<ref refid="class_multidraw_context_1ab3eb913fa9c9b8f6f313bfc068e3e7dd" kindref="member">operator=</ref>(<ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="115" refid="class_multidraw_context_1ac806f166b566bca657521768973ced15" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_multidraw_context_1ac806f166b566bca657521768973ced15" kindref="member">MultidrawContext</ref>(<ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="119" refid="class_multidraw_context_1ad586d35be79d2ca8cd5dfcbb48ebe722" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>&amp;<ref refid="class_multidraw_context_1ad586d35be79d2ca8cd5dfcbb48ebe722" kindref="member">operator=</ref>(<ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="class_multidraw_context_1_1_multidraw_render_executor" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref>;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>*context;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref>()<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref>(<ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;<ref refid="class_multidraw_context_1ab3eb913fa9c9b8f6f313bfc068e3e7dd" kindref="member">operator=</ref>(<ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref>(<ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;<ref refid="class_multidraw_context_1ab3eb913fa9c9b8f6f313bfc068e3e7dd" kindref="member">operator=</ref>(<ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="148" refid="class_multidraw_context_1_1_multidraw_render_executor_1a74a1dd2d7023aa3a56e67c81901dfb11" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor_1a74a1dd2d7023aa3a56e67c81901dfb11" kindref="member">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context" kindref="compound">MultidrawContext</ref><sp/>*context)<sp/>:<sp/>context(context)<sp/>{}</highlight></codeline>
+<codeline lineno="157" refid="class_multidraw_context_1_1_multidraw_render_executor_1affbe689ead63d464c84504d64f9a9d8d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor_1affbe689ead63d464c84504d64f9a9d8d" kindref="member">render</ref>(uint32_t<sp/>primitive_type,<sp/>uint32_t<sp/>first_drawcall,<sp/>uint32_t<sp/>drawcalls_count)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="158"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!context)</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d3d::multi_draw_indexed_indirect(primitive_type,<sp/>context-&gt;multidrawArguments.getBuf(),<sp/>drawcalls_count,</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>context-&gt;bytesCountPerDrawcall(),<sp/>(first_drawcall<sp/>+<sp/>context-&gt;actualStart)<sp/>*<sp/>context-&gt;bytesCountPerDrawcall());</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170" refid="class_multidraw_context_1a87c2c1a3f43eb2a16a1d506d2803c5dc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1a87c2c1a3f43eb2a16a1d506d2803c5dc" kindref="member">MultidrawParametersSetter</ref><sp/>=<sp/>eastl::fixed_function&lt;</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*),</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal">(uint32_t<sp/>draw_index,<sp/>uint32_t<sp/>&amp;index_count_per_instance,<sp/>uint32_t<sp/>&amp;instance_count,<sp/>uint32_t<sp/>&amp;start_index_location,</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>int32_t<sp/>&amp;base_vertex_location,<sp/>PerDrawDataT<sp/>&amp;per_draw_data)&gt;;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183" refid="class_multidraw_context_1a40fc5050901d45ce313ee8b31c21ef5f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref><sp/><ref refid="class_multidraw_context_1a40fc5050901d45ce313ee8b31c21ef5f" kindref="member">fillBuffers</ref>(uint32_t<sp/>drawcalls_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1a87c2c1a3f43eb2a16a1d506d2803c5dc" kindref="member">MultidrawParametersSetter</ref><sp/>&amp;params_setter)</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>lockFlags<sp/>=<sp/>VBLOCK_NOOVERWRITE;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(allocatedDrawcallsInBuffer<sp/>&lt;<sp/>drawcalls_count<sp/>||<sp/>!multidrawArguments.getBuf())</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>CHUNK_SIZE<sp/>=<sp/>2000;</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>(drawcalls_count<sp/>+<sp/>CHUNK_SIZE<sp/>-<sp/>1)<sp/>/<sp/>CHUNK_SIZE<sp/>*<sp/>CHUNK_SIZE;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArguments.close();</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArguments<sp/>=<sp/>dag::create_sbuffer(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),<sp/>allocatedDrawcallsInBuffer<sp/>*<sp/>dwordsCountPerDrawcall(),</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SBCF_INDIRECT<sp/>|<sp/>SBCF_DYNAMIC,<sp/>0,<sp/>name.c_str());</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(needPerDrawParamsBuffer())</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>perDrawArgsBuffer.close();</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>perDrawArgsBuffer<sp/>=<sp/>dag::create_sbuffer(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(PerDrawDataT),<sp/>allocatedDrawcallsInBuffer,</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SBCF_MISC_STRUCTURED<sp/>|<sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_DYNAMIC,<sp/>0,<sp/>getPerDrawArgsBufferName().c_str());</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(drawcalls_count<sp/>+<sp/>lastOffset<sp/>&gt;<sp/>allocatedDrawcallsInBuffer)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lastOffset<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lockFlags<sp/>=<sp/>VBLOCK_DISCARD;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::variant&lt;eastl::monostate,<sp/>LockedBuffer&lt;DrawIndexedIndirectArgs&gt;,<sp/>LockedBuffer&lt;ExtendedDrawIndexedIndirectArgs&gt;&gt;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgs;</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>bufferLocked<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(usesExtendedMultiDrawStruct())</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgs<sp/>=<sp/>lock_sbuffer&lt;ExtendedDrawIndexedIndirectArgs&gt;(multidrawArguments.getBuf(),</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>lastOffset<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ExtendedDrawIndexedIndirectArgs),<sp/>drawcalls_count,<sp/>lockFlags);</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>bufferLocked<sp/>=<sp/>(bool)eastl::get&lt;2&gt;(multidrawArgs);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgs<sp/>=<sp/>lock_sbuffer&lt;DrawIndexedIndirectArgs&gt;(multidrawArguments.getBuf(),<sp/>lastOffset<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgs),</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drawcalls_count,<sp/>lockFlags);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>bufferLocked<sp/>=<sp/>(bool)eastl::get&lt;1&gt;(multidrawArgs);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!bufferLocked)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Buffer<sp/>%s<sp/>data<sp/>wasn&apos;t<sp/>updated.&quot;</highlight><highlight class="normal">,<sp/>multidrawArguments.getBuf()-&gt;getBufName());</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::optional&lt;LockedBuffer&lt;PerDrawDataT&gt;&gt;<sp/>perDrawArgs;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(needPerDrawParamsBuffer())</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>perDrawArgs.emplace(lock_sbuffer&lt;PerDrawDataT&gt;(perDrawArgsBuffer.getBuf(),<sp/>0,<sp/>drawcalls_count,<sp/>VBLOCK_DISCARD));</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!perDrawArgs)</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Buffer<sp/>%s<sp/>data<sp/>wasn&apos;t<sp/>updated.&quot;</highlight><highlight class="normal">,<sp/>perDrawArgsBuffer.getBuf()-&gt;getBufName());</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>drawcalls_count;<sp/>++i)</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>DrawIndexedIndirectArgs<sp/>&amp;drawCall<sp/>=</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgs.index()<sp/>==<sp/>1<sp/>?<sp/>eastl::get&lt;1&gt;(multidrawArgs)[i]<sp/>:<sp/>eastl::get&lt;2&gt;(multidrawArgs)[i].args;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>&amp;drawcallId<sp/>=<sp/>multidrawArgs.index()<sp/>==<sp/>1<sp/>?<sp/>drawCall.startInstanceLocation<sp/>:<sp/>eastl::get&lt;2&gt;(multidrawArgs)[i].drawcallId;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>PerDrawDataT<sp/>&amp;perDrawData<sp/>=<sp/>perDrawArgs<sp/>?<sp/>perDrawArgs.value()[i]<sp/>:<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">PerDrawDataT<sp/>&amp;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(drawcallId);</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>params_setter(i,<sp/>drawCall.indexCountPerInstance,<sp/>drawCall.instanceCount,<sp/>drawCall.startIndexLocation,</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drawCall.baseVertexLocation,<sp/>perDrawData);</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(perDrawArgs)</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drawcallId<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>actualStart<sp/>=<sp/>lastOffset;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/>lastOffset<sp/>+=<sp/>drawcalls_count;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1_1_multidraw_render_executor" kindref="compound">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256" refid="class_multidraw_context_1aea80f7ee14258eb0b126566533d3f234" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_multidraw_context_1aea80f7ee14258eb0b126566533d3f234" kindref="member">close</ref>()</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>multidrawArguments.close();</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/>perDrawArgsBuffer.close();</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="262"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_multidrawContext.h"/>
+  </compounddef>
+</doxygen>

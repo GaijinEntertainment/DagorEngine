@@ -1,0 +1,351 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="bfg_8h" kind="file" language="C++">
+    <compoundname>bfg.h</compoundname>
+    <includes local="no">EASTL/span.h</includes>
+    <includes local="no">EASTL/string_view.h</includes>
+    <includes refid="name_space_8h" local="no">render/daBfg/nameSpace.h</includes>
+    <includes refid="node_handle_8h" local="no">render/daBfg/nodeHandle.h</includes>
+    <includes refid="registry_8h" local="no">render/daBfg/registry.h</includes>
+    <includes refid="multiplexing_8h" local="no">render/daBfg/multiplexing.h</includes>
+    <includes refid="external_state_8h" local="no">render/daBfg/externalState.h</includes>
+    <incdepgraph>
+      <node id="15">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="30">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="40">
+        <label>render/daBfg/nameSpaceRequest.h</label>
+        <link refid="name_space_request_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="11">
+        <label>shaders/dag_overrideStates.h</label>
+      </node>
+      <node id="27">
+        <label>render/daBfg/detail/nodeNameId.h</label>
+      </node>
+      <node id="18">
+        <label>render/daBfg/stage.h</label>
+        <link refid="stage_8h_source"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>render/daBfg/virtualResourceHandle.h</label>
+        <link refid="virtual_resource_handle_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>render/daBfg/externalState.h</label>
+        <link refid="external_state_8h_source"/>
+      </node>
+      <node id="28">
+        <label>render/daBfg/virtualPassRequest.h</label>
+        <link refid="virtual_pass_request_8h_source"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>render/daBfg/virtualResourceSemiRequest.h</label>
+        <link refid="virtual_resource_semi_request_8h_source"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>render/daBfg/variableRateShading.h</label>
+        <link refid="variable_rate_shading_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>render/daBfg/detail/nameSpaceNameId.h</label>
+      </node>
+      <node id="24">
+        <label>render/daBfg/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/span.h</label>
+      </node>
+      <node id="29">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="9">
+        <label>render/daBfg/registry.h</label>
+        <link refid="registry_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>render/daBfg/stateRequest.h</label>
+        <link refid="state_request_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>render/daBfg/multiplexing.h</label>
+        <link refid="multiplexing_8h_source"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>render/daBfg/virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtual_resource_creation_semi_request_8h_source"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>render/daBfg/externalResources.h</label>
+        <link refid="external_resources_8h_source"/>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>render/daBfg/history.h</label>
+        <link refid="history_8h_source"/>
+      </node>
+      <node id="26">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="14">
+        <label>render/daBfg/virtualResourceRequest.h</label>
+        <link refid="virtual_resource_request_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>3d/dag_tex3d.h</label>
+      </node>
+      <node id="31">
+        <label>render/daBfg/detail/access.h</label>
+      </node>
+      <node id="25">
+        <label>3d/dag_drv3dConsts.h</label>
+      </node>
+      <node id="39">
+        <label>render/daBfg/sideEffects.h</label>
+        <link refid="side_effects_8h_source"/>
+      </node>
+      <node id="5">
+        <label>EASTL/functional.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="16">
+        <label>render/daBfg/usage.h</label>
+        <link refid="usage_8h_source"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>render/daBfg/nodeHandle.h</label>
+        <link refid="node_handle_8h_source"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h</label>
+        <link refid="bfg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>render/daBfg/priority.h</label>
+        <link refid="priority_8h_source"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>render/daBfg/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="22">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="35">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="4">
+        <label>render/daBfg/nameSpace.h</label>
+        <link refid="name_space_8h_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="7">
+        <label>render/daBfg/detail/bfg.h</label>
+      </node>
+      <node id="38">
+        <label>EASTL/numeric_limits.h</label>
+      </node>
+      <node id="21">
+        <label>render/daBfg/detail/virtualResourceHandleBase.h</label>
+      </node>
+      <node id="36">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>2023<sp/><sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(for<sp/>conditions<sp/>of<sp/>use<sp/>see<sp/>prog/license.txt)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string_view.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/nameSpace.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/nodeHandle.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/registry.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/multiplexing.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/externalState.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" refkind="member"><highlight class="normal"><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref><sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">root</ref>();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="group___dabfg_core_1gac09324b07f826b0accb38c9e5126a229" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1gac09324b07f826b0accb38c9e5126a229" kindref="member">set_multiplexing_extents</ref>(<ref refid="structdabfg_1_1multiplexing_1_1_extents" kindref="compound">multiplexing::Extents</ref><sp/>extents);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="group___dabfg_core_1gafb08b997cd8883e445148336ec97fd67" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1gafb08b997cd8883e445148336ec97fd67" kindref="member">run_nodes</ref>();</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="group___dabfg_core_1ga649d48c3ba1690f0cb81553d0e18e7a5" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1ga649d48c3ba1690f0cb81553d0e18e7a5" kindref="member">startup</ref>();</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="group___dabfg_core_1ga441273e564147def3a01e045558f69a2" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1ga441273e564147def3a01e045558f69a2" kindref="member">shutdown</ref>();</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="group___dabfg_core_1ga8006e9745ff18cb20d38eb4ac5b815a7" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1ga8006e9745ff18cb20d38eb4ac5b815a7" kindref="member">update_external_state</ref>(<ref refid="structdabfg_1_1_external_state" kindref="compound">ExternalState</ref><sp/>state);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="group___dabfg_core_1gacfb39ee2361920d78e56a0a4941c04ec" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1gacfb39ee2361920d78e56a0a4941c04ec" kindref="member">mark_external_resource_for_validation</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>D3dResource<sp/>*resource);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>F&gt;</highlight></codeline>
+<codeline lineno="73" refid="group___dabfg_core_aliases_1gacbc7438b6ff4f6edb6dd8a078bbfd51a" refkind="member"><highlight class="normal">[[nodiscard]]<sp/><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref><sp/><ref refid="group___dabfg_core_aliases_1gacbc7438b6ff4f6edb6dd8a078bbfd51a" kindref="member">register_node</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*source_location,<sp/>F<sp/>&amp;&amp;declaration_callback)</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">root</ref>().<ref refid="classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1" kindref="member">registerNode</ref>(name,<sp/>source_location,<sp/>eastl::forward&lt;F&gt;(declaration_callback));</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="group___dabfg_core_aliases_1gad601740a1707c5d5fccad27c3609abd0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1gad601740a1707c5d5fccad27c3609abd0" kindref="member">set_resolution</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*typeName,<sp/>IPoint2<sp/>value)<sp/>{<sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1a1d87ca408e9a423e07dac31fc890e1a3" kindref="member">setResolution</ref>(typeName,<sp/>value);<sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="group___dabfg_core_aliases_1ga922b5151d8a5917dd69d51bff98344c1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1ga922b5151d8a5917dd69d51bff98344c1" kindref="member">set_dynamic_resolution</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*typeName,<sp/>IPoint2<sp/>value)<sp/>{<sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1ab42aceabe2cf00d9ca3a7a4196353449" kindref="member">setDynamicResolution</ref>(typeName,<sp/>value);<sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="group___dabfg_core_aliases_1gacdd0e63d96b4cec01506daf9f8890026" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1gacdd0e63d96b4cec01506daf9f8890026" kindref="member">fill_slot</ref>(<ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref><sp/>slot,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*res_name)<sp/>{<sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00" kindref="member">fillSlot</ref>(slot,<sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>(),<sp/>res_name);<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="group___dabfg_core_aliases_1gaa6c4dc938bfd33044b4941b3fc7104d8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1gae7968199de001a848f947a88fa0740f3" kindref="member">update_externally_consumed_resource_set</ref>(eastl::span&lt;const<sp/>char<sp/>*const&gt;<sp/>res_names)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037" kindref="member">updateExternallyConsumedResourceSet</ref>(res_names);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="group___dabfg_core_aliases_1gae7968199de001a848f947a88fa0740f3" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1gae7968199de001a848f947a88fa0740f3" kindref="member">update_externally_consumed_resource_set</ref>(std::initializer_list&lt;const<sp/>char<sp/>*&gt;<sp/>res_names)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037" kindref="member">updateExternallyConsumedResourceSet</ref>(res_names);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="group___dabfg_core_aliases_1ga15bde25c74b84639be88c475aa31bb79" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1ga15bde25c74b84639be88c475aa31bb79" kindref="member">mark_resource_externally_consumed</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*res_name)<sp/>{<sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94" kindref="member">markResourceExternallyConsumed</ref>(res_name);<sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="group___dabfg_core_aliases_1ga9072c55d17effd2d0f7d5df12c291144" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___dabfg_core_aliases_1ga9072c55d17effd2d0f7d5df12c291144" kindref="member">unmark_resource_externally_consumed</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*res_name)<sp/>{<sp/><ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root</ref>().<ref refid="classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0" kindref="member">unmarkResourceExternallyConsumed</ref>(res_name);<sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h"/>
+  </compounddef>
+</doxygen>

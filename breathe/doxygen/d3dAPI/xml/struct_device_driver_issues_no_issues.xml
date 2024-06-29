@@ -1,0 +1,270 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_issues_no_issues" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesNoIssues</compoundname>
+    <basecompoundref refid="struct_device_driver_issues_base" prot="public" virt="non-virtual">DeviceDriverIssuesBase</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1ae6caf227f4bccdfa2c09d6804453546b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasComputeTimeLimited</definition>
+        <argsstring></argsstring>
+        <name>hasComputeTimeLimited</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a4155a0570f12968d78e323e26304929f" kindref="member">DeviceDriverIssuesBase::hasComputeTimeLimited</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1804" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1804" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1aa9d9c365a819126923c0bbbb7ac3f299" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasComputeCanNotWrite3DTex</definition>
+        <argsstring></argsstring>
+        <name>hasComputeCanNotWrite3DTex</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a47992c604a6c9348ed72906e2faa9c9e" kindref="member">DeviceDriverIssuesBase::hasComputeCanNotWrite3DTex</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1809" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1809" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1ada3d9838abbb1e20461a948e422b7774" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasStrictRenderPassesOnly</definition>
+        <argsstring></argsstring>
+        <name>hasStrictRenderPassesOnly</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a0cadf2df929f3c2ea141d7f7a338bfd9" kindref="member">DeviceDriverIssuesBase::hasStrictRenderPassesOnly</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1814" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1814" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1abd52c2de043dfcf58caa6646a40e56ab" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasSmallSampledBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasSmallSampledBuffers</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1af41da6d79519916b216c91c8c0b16c26" kindref="member">DeviceDriverIssuesBase::hasSmallSampledBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1819" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1819" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1ab8ddca62e4d4750413931dfdfedde3fb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasRenderPassClearDataRace</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassClearDataRace</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a0c0e9635e0bd509ed6febe7bf41b1037" kindref="member">DeviceDriverIssuesBase::hasRenderPassClearDataRace</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1824" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1824" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1ab38015f852c1421caeab303bee81c9af" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasLimitedDXCShaders</definition>
+        <argsstring></argsstring>
+        <name>hasLimitedDXCShaders</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a8790663fe4f7235912359d786149f822" kindref="member">DeviceDriverIssuesBase::hasLimitedDXCShaders</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1829" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1829" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1ad5264656df88fc66ebfe205572632954" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasBrokenBaseInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenBaseInstanceID</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1aed100b8cc04c55fb5a645a31b4f6f1bd" kindref="member">DeviceDriverIssuesBase::hasBrokenBaseInstanceID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1834" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1834" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1a0574c8df0c0ea9244a4c8850fd271038" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasMultisampledAndInstancingHang</definition>
+        <argsstring></argsstring>
+        <name>hasMultisampledAndInstancingHang</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1ad502c03e9b8bc5f466439ede61f20a9c" kindref="member">DeviceDriverIssuesBase::hasMultisampledAndInstancingHang</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1839" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1839" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1a3277fe24fdb8ba5618447eb18b291f61" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasIgnoreDeviceLost</definition>
+        <argsstring></argsstring>
+        <name>hasIgnoreDeviceLost</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a73a3b06020df31b84570b6e073204237" kindref="member">DeviceDriverIssuesBase::hasIgnoreDeviceLost</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1844" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1844" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1a2abeae923cc9ce8c98872dbfa0924187" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasPollDeviceFences</definition>
+        <argsstring></argsstring>
+        <name>hasPollDeviceFences</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1ad14daea5fce019300ab5227acdf12886" kindref="member">DeviceDriverIssuesBase::hasPollDeviceFences</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1849" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1849" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1a04fc1b38f538260063e7c557e575c061" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasMultisampledAndBlendingHang</definition>
+        <argsstring></argsstring>
+        <name>hasMultisampledAndBlendingHang</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a87b8f7dbb696e20077e9bffacbefaa3c" kindref="member">DeviceDriverIssuesBase::hasMultisampledAndBlendingHang</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1854" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1854" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1a99f90893fcdd5b76948a1e100272ab30" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasBrokenShadersAfterAppSwitch</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenShadersAfterAppSwitch</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a3928aca35169986ebd34a4e811c54f62" kindref="member">DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1859" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1859" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized issues structure for all platforms that are known to suffer from none of those. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="struct_device_driver_issues_no_issues"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="struct_device_driver_issues_no_issues"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1798" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1799" bodyend="1860"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_issues_no_issues_1ad5264656df88fc66ebfe205572632954" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1a99f90893fcdd5b76948a1e100272ab30" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1aa9d9c365a819126923c0bbbb7ac3f299" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1ae6caf227f4bccdfa2c09d6804453546b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1a3277fe24fdb8ba5618447eb18b291f61" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1ab38015f852c1421caeab303bee81c9af" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasLimitedDXCShaders</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1a04fc1b38f538260063e7c557e575c061" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasMultisampledAndBlendingHang</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1a0574c8df0c0ea9244a4c8850fd271038" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1a2abeae923cc9ce8c98872dbfa0924187" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasPollDeviceFences</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1ab8ddca62e4d4750413931dfdfedde3fb" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1abd52c2de043dfcf58caa6646a40e56ab" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1ada3d9838abbb1e20461a948e422b7774" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

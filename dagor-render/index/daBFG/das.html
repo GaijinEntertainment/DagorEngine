@@ -1,0 +1,3248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DaScript module &mdash; Dagor documentation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/design-tabs.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Helper classes" href="../helperClasses.html" />
+    <link rel="prev" title="Dispatching Work in Nodes at Runtime" href="runtime.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Dagor documentation
+            <img src="../../../_static/gaijin.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../daBFG.html">daBFG API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="core.html">Core Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="declaringNodes.html">Declaring a Node</a></li>
+<li class="toctree-l3"><a class="reference internal" href="graphState.html">Controlling the Graph State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="runtime.html">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">DaScript module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#type-aliases">Type aliases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#enumerations">Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#handled-structures">Handled structures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#function-annotations">Function annotations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#top-level-functions">Top level functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#registry-manipulation">Registry manipulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#request-manipulation">Request manipulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#uncategorized">Uncategorized</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../helperClasses.html">Helper classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resourceSlot.html">Resource slots</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quirrel-modules/index.html">Quirrel Modules Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../qdox-user-guide/index.html">Qdox User Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daBFG.html">daBFG API</a></li>
+      <li class="breadcrumb-item active">DaScript module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-render/index/daBFG/das.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dascript-module">
+<span id="stdlib-dabfg"></span><h1>DaScript module<a class="headerlink" href="#dascript-module" title="Permalink to this heading"></a></h1>
+<p>To use daBfg inside daScript you need first of all compile daBfg library with <code class="docutils literal notranslate"><span class="pre">DABFG_ENABLE_DAS_INTERGRATION</span> <span class="pre">=</span> <span class="pre">yes</span></code>.</p>
+<p>This will compile das module that you can import with <code class="docutils literal notranslate"><span class="pre">require</span> <span class="pre">daBfg</span></code>.</p>
+<p>DaScript daBfg methods are very similar to cpp methods, so usage will be the same, but with das syntax instead.</p>
+<p><span class="xref std std-ref">daBfg::registerNode</span> registers node with provided name and declaration callback.
+Returns <a class="reference internal" href="#handle-dabfg-nodehandle"><span class="std std-ref">daBfg::NodeHandle</span></a>.</p>
+<p>Declaration callback is a das lambda with one argument <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a>.
+It returns execute lambda.</p>
+<p>Inside declaration callback you describe node using registry argument.</p>
+<p>Cpp declaration code</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">registry</span><span class="p">.</span><span class="n">orderMeAfter</span><span class="p">(</span><span class="s">&quot;some_node&quot;</span><span class="p">)</span>
+<span class="n">registry</span><span class="p">.</span><span class="n">requestRenderPass</span><span class="p">().</span><span class="n">color</span><span class="p">(</span><span class="s">&quot;rt_tex&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Will be in das</p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span>registry |&gt; orderMeAfter(&quot;some_node&quot;)
+registry |&gt; requestRenderPass |&gt; color([[auto &quot;rt_tex&quot;]])
+</pre></div>
+</div>
+<p>Example:</p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span>require daBfg
+
+def register_debug_visualization_node(var handle : NodeHandle&amp; |#)
+  handle &lt;- root() |&gt; registerNode(debug_visualization_node_name) &lt;| @(var registry : Registry)
+    if is_forward_rendering()
+      registry |&gt; requestRenderPass |&gt; color([[auto[] &quot;target_after_under_water_fog&quot;]]) |&gt; depthRo(&quot;depth_for_transparent_effects&quot;)
+    else
+      registry |&gt; orderMeAfter(&quot;transparent_effects_node&quot;)
+      registry |&gt; orderMeBefore(&quot;transparent_scene_late_node&quot;)
+      registry |&gt; requestRenderPass |&gt; color([[auto[] &quot;opaque_final_target&quot;]]) |&gt; depthRw(&quot;depth_for_transparency&quot;)
+
+    registry |&gt; requestState() |&gt; setFrameBlock(&quot;global_frame&quot;)
+    return &lt;- @ &lt;|
+      worldRenderer_renderDebug()
+</pre></div>
+</div>
+<p>Nodes can be stored in ecs and in this case there is special function annotation <a class="reference internal" href="#handle-dabfg-bfg-ecs-node"><span class="std std-ref">bfg_ecs_node</span></a> for hot reloading.</p>
+<p>Example:</p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span>[bfg_ecs_node(name=&quot;node_name&quot;, entity=&quot;entity_name&quot;, handle=&quot;node_handle&quot;)]
+def register_node(var handle : NodeHandle&amp; |#)
+  handle &lt;- root() |&gt; registerNode(&quot;node_name&quot;) &lt;| @(var registry : Registry)
+    ...
+    return &lt;- @ &lt;|
+      ...
+
+...
+
+var eid = getSingletonEntity(&quot;entity_name&quot;)
+query(eid) &lt;| $ [es] (var node_handle : NodeHandle&amp;)
+  node_handle |&gt; register_node
+</pre></div>
+</div>
+<section id="type-aliases">
+<h2>Type aliases<a class="headerlink" href="#type-aliases" title="Permalink to this heading"></a></h2>
+<span class="target" id="alias-bindingsmap"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="BindingsMap = fixedVectorMap`int`Binding`8">
+<span class="sig-name descname"><span class="pre">BindingsMap</span> <span class="pre">=</span> <span class="pre">fixedVectorMap`int`Binding`8</span></span><a class="headerlink" href="#BindingsMap = fixedVectorMap`int`Binding`8" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id1"><span class="problematic" id="id2">|typedef-daBfg-BindingsMap|</span></a></p>
+<span class="target" id="alias-vrsratetexture"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VrsRateTexture is a variant type">
+<span class="sig-name descname"><span class="pre">VrsRateTexture</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">variant</span> <span class="pre">type</span></span><a class="headerlink" href="#VrsRateTexture is a variant type" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 5%" />
+<col style="width: 95%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>some</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>none</p></td>
+<td rowspan="2"><p>void?</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id3"><span class="problematic" id="id4">|typedef-daBfg-VrsRateTexture|</span></a></p>
+<span class="target" id="alias-virtualattachmentresource"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualAttachmentResource is a variant type">
+<span class="sig-name descname"><span class="pre">VirtualAttachmentResource</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">variant</span> <span class="pre">type</span></span><a class="headerlink" href="#VirtualAttachmentResource is a variant type" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 88%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id5"><span class="problematic" id="id6">|typedef-daBfg-VirtualAttachmentResource|</span></a></p>
+<span class="target" id="alias-textureresolution"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="TextureResolution is a variant type">
+<span class="sig-name descname"><span class="pre">TextureResolution</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">variant</span> <span class="pre">type</span></span><a class="headerlink" href="#TextureResolution is a variant type" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>res</p></td>
+<td rowspan="2"><p>tuple&lt;x:uint;y:uint&gt;</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>autoRes</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-autoresolutionrequest"><span class="std std-ref">daBfg::AutoResolutionRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id7"><span class="problematic" id="id8">|typedef-daBfg-TextureResolution|</span></a></p>
+</section>
+<section id="enumerations">
+<h2>Enumerations<a class="headerlink" href="#enumerations" title="Permalink to this heading"></a></h2>
+<span class="target" id="enum-dabfg-namespacenameid"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NameSpaceNameId">
+<span class="sig-name descname"><span class="pre">NameSpaceNameId</span></span><a class="headerlink" href="#NameSpaceNameId" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>4294967295</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id9"><span class="problematic" id="id10">|enumeration-daBfg-NameSpaceNameId|</span></a></p>
+<span class="target" id="enum-dabfg-nodenameid"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NodeNameId">
+<span class="sig-name descname"><span class="pre">NodeNameId</span></span><a class="headerlink" href="#NodeNameId" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>4294967295</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id11"><span class="problematic" id="id12">|enumeration-daBfg-NodeNameId|</span></a></p>
+<span class="target" id="enum-dabfg-resnameid"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResNameId">
+<span class="sig-name descname"><span class="pre">ResNameId</span></span><a class="headerlink" href="#ResNameId" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>4294967295</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id13"><span class="problematic" id="id14">|enumeration-daBfg-ResNameId|</span></a></p>
+<span class="target" id="enum-dabfg-history"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="History">
+<span class="sig-name descname"><span class="pre">History</span></span><a class="headerlink" href="#History" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 95%" />
+<col style="width: 5%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>No</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ClearZeroOnFirstFrame</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DiscardOnFirstFrame</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id15"><span class="problematic" id="id16">|enumeration-daBfg-History|</span></a></p>
+<span class="target" id="enum-dabfg-resourceactivationaction"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResourceActivationAction">
+<span class="sig-name descname"><span class="pre">ResourceActivationAction</span></span><a class="headerlink" href="#ResourceActivationAction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 96%" />
+<col style="width: 4%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>REWRITE_AS_COPY_DESTINATION</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>REWRITE_AS_UAV</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>REWRITE_AS_RTV_DSV</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CLEAR_F_AS_UAV</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CLEAR_I_AS_UAV</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CLEAR_AS_RTV_DSV</p></td>
+<td rowspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DISCARD_AS_UAV</p></td>
+<td rowspan="2"><p>6</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DISCARD_AS_RTV_DSV</p></td>
+<td rowspan="2"><p>7</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id17"><span class="problematic" id="id18">|enumeration-daBfg-ResourceActivationAction|</span></a></p>
+<span class="target" id="enum-dabfg-multiplexingmode"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="MultiplexingMode">
+<span class="sig-name descname"><span class="pre">MultiplexingMode</span></span><a class="headerlink" href="#MultiplexingMode" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 93%" />
+<col style="width: 7%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>None</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>SuperSampling</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>SubSampling</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Viewport</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>FullMultiplex</p></td>
+<td rowspan="2"><p>7</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id19"><span class="problematic" id="id20">|enumeration-daBfg-MultiplexingMode|</span></a></p>
+<span class="target" id="enum-dabfg-sideeffect"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="SideEffect">
+<span class="sig-name descname"><span class="pre">SideEffect</span></span><a class="headerlink" href="#SideEffect" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 89%" />
+<col style="width: 11%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>None</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Internal</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>External</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id21"><span class="problematic" id="id22">|enumeration-daBfg-SideEffect|</span></a></p>
+<span class="target" id="enum-dabfg-access"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="Access">
+<span class="sig-name descname"><span class="pre">Access</span></span><a class="headerlink" href="#Access" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 91%" />
+<col style="width: 9%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>UNKNOWN</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>READ_ONLY</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>READ_WRITE</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id23"><span class="problematic" id="id24">|enumeration-daBfg-Access|</span></a></p>
+<span class="target" id="enum-dabfg-usage"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="Usage">
+<span class="sig-name descname"><span class="pre">Usage</span></span><a class="headerlink" href="#Usage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 95%" />
+<col style="width: 5%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>UNKNOWN</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>COLOR_ATTACHMENT</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>INPUT_ATTACHMENT</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DEPTH_ATTACHMENT</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DEPTH_ATTACHMENT_AND_SHADER_RESOURCE</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>RESOLVE_ATTACHMENT</p></td>
+<td rowspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>SHADER_RESOURCE</p></td>
+<td rowspan="2"><p>6</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CONSTANT_BUFFER</p></td>
+<td rowspan="2"><p>7</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>INDEX_BUFFER</p></td>
+<td rowspan="2"><p>8</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VERTEX_BUFFER</p></td>
+<td rowspan="2"><p>9</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>COPY</p></td>
+<td rowspan="2"><p>10</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>BLIT</p></td>
+<td rowspan="2"><p>11</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>INDIRECTION_BUFFER</p></td>
+<td rowspan="2"><p>12</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_RATE_TEXTURE</p></td>
+<td rowspan="2"><p>13</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id25"><span class="problematic" id="id26">|enumeration-daBfg-Usage|</span></a></p>
+<span class="target" id="enum-dabfg-stage"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="Stage">
+<span class="sig-name descname"><span class="pre">Stage</span></span><a class="headerlink" href="#Stage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 88%" />
+<col style="width: 12%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>UNKNOWN</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>PRE_RASTER</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>POST_RASTER</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>COMPUTE</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>TRANSFER</p></td>
+<td rowspan="2"><p>8</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>RAYTRACE</p></td>
+<td rowspan="2"><p>16</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ALL_GRAPHICS</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ALL_INDIRECTION</p></td>
+<td rowspan="2"><p>21</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id27"><span class="problematic" id="id28">|enumeration-daBfg-Stage|</span></a></p>
+<span class="target" id="enum-dabfg-resourcetype"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResourceType">
+<span class="sig-name descname"><span class="pre">ResourceType</span></span><a class="headerlink" href="#ResourceType" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 88%" />
+<col style="width: 13%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Texture</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Buffer</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Blob</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id29"><span class="problematic" id="id30">|enumeration-daBfg-ResourceType|</span></a></p>
+<span class="target" id="enum-dabfg-autorestypenameid"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="AutoResTypeNameId">
+<span class="sig-name descname"><span class="pre">AutoResTypeNameId</span></span><a class="headerlink" href="#AutoResTypeNameId" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>4294967295</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id31"><span class="problematic" id="id32">|enumeration-daBfg-AutoResTypeNameId|</span></a></p>
+<span class="target" id="enum-dabfg-variablerateshadingcombiner"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VariableRateShadingCombiner">
+<span class="sig-name descname"><span class="pre">VariableRateShadingCombiner</span></span><a class="headerlink" href="#VariableRateShadingCombiner" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 94%" />
+<col style="width: 6%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>VRS_PASSTHROUGH</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_OVERRIDE</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_MIN</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_MAX</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_SUM</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id33"><span class="problematic" id="id34">|enumeration-daBfg-VariableRateShadingCombiner|</span></a></p>
+<span class="target" id="enum-dabfg-bindingtype"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="BindingType">
+<span class="sig-name descname"><span class="pre">BindingType</span></span><a class="headerlink" href="#BindingType" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 91%" />
+<col style="width: 9%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>ShaderVar</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ViewMatrix</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ProjMatrix</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id35"><span class="problematic" id="id36">|enumeration-daBfg-BindingType|</span></a></p>
+<span class="target" id="struct-dabfg-namespace"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NameSpace">
+<span class="sig-name descname"><span class="pre">NameSpace</span></span><a class="headerlink" href="#NameSpace" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NameSpace fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 85%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>nameSpaceId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-namespacenameid"><span class="std std-ref">daBfg::NameSpaceNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id37"><span class="problematic" id="id38">|structure-daBfg-NameSpace|</span></a></p>
+<span class="target" id="struct-dabfg-resuid"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResUid">
+<span class="sig-name descname"><span class="pre">ResUid</span></span><a class="headerlink" href="#ResUid" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResUid fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 87%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>nameId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resnameid"><span class="std std-ref">daBfg::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id39"><span class="problematic" id="id40">|structure-daBfg-ResUid|</span></a></p>
+<span class="target" id="struct-dabfg-virtualresourcerequestbase"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualResourceRequestBase">
+<span class="sig-name descname"><span class="pre">VirtualResourceRequestBase</span></span><a class="headerlink" href="#VirtualResourceRequestBase" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualResourceRequestBase fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id41"><span class="problematic" id="id42">|structure-daBfg-VirtualResourceRequestBase|</span></a></p>
+<span class="target" id="struct-dabfg-virtualresourcehandle"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualResourceHandle">
+<span class="sig-name descname"><span class="pre">VirtualResourceHandle</span></span><a class="headerlink" href="#VirtualResourceHandle" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualResourceHandle fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id43"><span class="problematic" id="id44">|structure-daBfg-VirtualResourceHandle|</span></a></p>
+<span class="target" id="struct-dabfg-virtualresourcecreationsemirequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualResourceCreationSemiRequest">
+<span class="sig-name descname"><span class="pre">VirtualResourceCreationSemiRequest</span></span><a class="headerlink" href="#VirtualResourceCreationSemiRequest" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceRequestBase</p>
+</dd></dl>
+
+<p>VirtualResourceCreationSemiRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id45"><span class="problematic" id="id46">|structure-daBfg-VirtualResourceCreationSemiRequest|</span></a></p>
+<span class="target" id="struct-dabfg-virtualresourcesemirequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualResourceSemiRequest">
+<span class="sig-name descname"><span class="pre">VirtualResourceSemiRequest</span></span><a class="headerlink" href="#VirtualResourceSemiRequest" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceRequestBase</p>
+</dd></dl>
+
+<p>VirtualResourceSemiRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id47"><span class="problematic" id="id48">|structure-daBfg-VirtualResourceSemiRequest|</span></a></p>
+<span class="target" id="struct-dabfg-virtualresourcerequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualResourceRequest">
+<span class="sig-name descname"><span class="pre">VirtualResourceRequest</span></span><a class="headerlink" href="#VirtualResourceRequest" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceRequestBase</p>
+</dd></dl>
+
+<p>VirtualResourceRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id49"><span class="problematic" id="id50">|structure-daBfg-VirtualResourceRequest|</span></a></p>
+<span class="target" id="struct-dabfg-virtualtexturehandle"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualTextureHandle">
+<span class="sig-name descname"><span class="pre">VirtualTextureHandle</span></span><a class="headerlink" href="#VirtualTextureHandle" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceHandle</p>
+</dd></dl>
+
+<p>VirtualTextureHandle fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id51"><span class="problematic" id="id52">|structure-daBfg-VirtualTextureHandle|</span></a></p>
+<span class="target" id="struct-dabfg-virtualbufferhandle"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualBufferHandle">
+<span class="sig-name descname"><span class="pre">VirtualBufferHandle</span></span><a class="headerlink" href="#VirtualBufferHandle" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceHandle</p>
+</dd></dl>
+
+<p>VirtualBufferHandle fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id53"><span class="problematic" id="id54">|structure-daBfg-VirtualBufferHandle|</span></a></p>
+<span class="target" id="struct-dabfg-virtualtexturerequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualTextureRequest">
+<span class="sig-name descname"><span class="pre">VirtualTextureRequest</span></span><a class="headerlink" href="#VirtualTextureRequest" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceRequest</p>
+</dd></dl>
+
+<p>VirtualTextureRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id55"><span class="problematic" id="id56">|structure-daBfg-VirtualTextureRequest|</span></a></p>
+<span class="target" id="struct-dabfg-virtualbufferrequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualBufferRequest">
+<span class="sig-name descname"><span class="pre">VirtualBufferRequest</span></span><a class="headerlink" href="#VirtualBufferRequest" title="Permalink to this definition"></a></dt>
+<dd><p>: VirtualResourceRequest</p>
+</dd></dl>
+
+<p>VirtualBufferRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-resuid"><span class="std std-ref">daBfg::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id57"><span class="problematic" id="id58">|structure-daBfg-VirtualBufferRequest|</span></a></p>
+<span class="target" id="struct-dabfg-staterequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="StateRequest">
+<span class="sig-name descname"><span class="pre">StateRequest</span></span><a class="headerlink" href="#StateRequest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>StateRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id59"><span class="problematic" id="id60">|structure-daBfg-StateRequest|</span></a></p>
+<span class="target" id="struct-dabfg-vrsrequirements"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VrsRequirements">
+<span class="sig-name descname"><span class="pre">VrsRequirements</span></span><a class="headerlink" href="#VrsRequirements" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VrsRequirements fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>rateX</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateY</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateTexture</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#alias-vrsratetexture"><span class="std std-ref">VrsRateTexture</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vertexCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-variablerateshadingcombiner"><span class="std std-ref">daBfg::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>pixelCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-variablerateshadingcombiner"><span class="std std-ref">daBfg::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id61"><span class="problematic" id="id62">|structure-daBfg-VrsRequirements|</span></a></p>
+<span class="target" id="struct-dabfg-virtualpassrequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualPassRequest">
+<span class="sig-name descname"><span class="pre">VirtualPassRequest</span></span><a class="headerlink" href="#VirtualPassRequest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualPassRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id63"><span class="problematic" id="id64">|structure-daBfg-VirtualPassRequest|</span></a></p>
+<span class="target" id="struct-dabfg-virtualattachmentrequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualAttachmentRequest">
+<span class="sig-name descname"><span class="pre">VirtualAttachmentRequest</span></span><a class="headerlink" href="#VirtualAttachmentRequest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualAttachmentRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resource</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#alias-virtualattachmentresource"><span class="std std-ref">VirtualAttachmentResource</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevel</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>layer</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id65"><span class="problematic" id="id66">|structure-daBfg-VirtualAttachmentRequest|</span></a></p>
+<span class="target" id="struct-dabfg-autoresolutionrequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="AutoResolutionRequest">
+<span class="sig-name descname"><span class="pre">AutoResolutionRequest</span></span><a class="headerlink" href="#AutoResolutionRequest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>AutoResolutionRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 83%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>autoResTypeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-autorestypenameid"><span class="std std-ref">daBfg::AutoResTypeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>multiplier</p></td>
+<td rowspan="2"><p>float</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id67"><span class="problematic" id="id68">|structure-daBfg-AutoResolutionRequest|</span></a></p>
+<span class="target" id="struct-dabfg-texture2dcreateinfo"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="Texture2dCreateInfo">
+<span class="sig-name descname"><span class="pre">Texture2dCreateInfo</span></span><a class="headerlink" href="#Texture2dCreateInfo" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Texture2dCreateInfo fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 80%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resolution</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#alias-textureresolution"><span class="std std-ref">TextureResolution</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>creationFlags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevels</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id69"><span class="problematic" id="id70">|structure-daBfg-Texture2dCreateInfo|</span></a></p>
+<span class="target" id="struct-dabfg-buffercreateinfo"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="BufferCreateInfo">
+<span class="sig-name descname"><span class="pre">BufferCreateInfo</span></span><a class="headerlink" href="#BufferCreateInfo" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>BufferCreateInfo fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 75%" />
+<col style="width: 25%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>elementSize</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>elementCount</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>flags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>format</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id71"><span class="problematic" id="id72">|structure-daBfg-BufferCreateInfo|</span></a></p>
+<span class="target" id="struct-dabfg-namedslot"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NamedSlot">
+<span class="sig-name descname"><span class="pre">NamedSlot</span></span><a class="headerlink" href="#NamedSlot" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NamedSlot fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 60%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id73"><span class="problematic" id="id74">|structure-daBfg-NamedSlot|</span></a></p>
+</section>
+<section id="handled-structures">
+<h2>Handled structures<a class="headerlink" href="#handled-structures" title="Permalink to this heading"></a></h2>
+<span class="target" id="handle-dabfg-textureresourcedescription"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="TextureResourceDescription">
+<span class="sig-name descname"><span class="pre">TextureResourceDescription</span></span><a class="headerlink" href="#TextureResourceDescription" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>TextureResourceDescription fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>height</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevels</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>activation</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resourceactivationaction"><span class="std std-ref">daBfg::ResourceActivationAction</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>width</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>cFlags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id75"><span class="problematic" id="id76">|structure_annotation-daBfg-TextureResourceDescription|</span></a></p>
+<span class="target" id="handle-dabfg-voltextureresourcedescription"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VolTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">VolTextureResourceDescription</span></span><a class="headerlink" href="#VolTextureResourceDescription" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id77"><span class="problematic" id="id78">|structure_annotation-daBfg-VolTextureResourceDescription|</span></a></p>
+<span class="target" id="handle-dabfg-arraytextureresourcedescription"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ArrayTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">ArrayTextureResourceDescription</span></span><a class="headerlink" href="#ArrayTextureResourceDescription" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id79"><span class="problematic" id="id80">|structure_annotation-daBfg-ArrayTextureResourceDescription|</span></a></p>
+<span class="target" id="handle-dabfg-cubetextureresourcedescription"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="CubeTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">CubeTextureResourceDescription</span></span><a class="headerlink" href="#CubeTextureResourceDescription" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id81"><span class="problematic" id="id82">|structure_annotation-daBfg-CubeTextureResourceDescription|</span></a></p>
+<span class="target" id="handle-dabfg-arraycubetextureresourcedescription"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ArrayCubeTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">ArrayCubeTextureResourceDescription</span></span><a class="headerlink" href="#ArrayCubeTextureResourceDescription" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id83"><span class="problematic" id="id84">|structure_annotation-daBfg-ArrayCubeTextureResourceDescription|</span></a></p>
+<span class="target" id="handle-dabfg-resourcedata"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResourceData">
+<span class="sig-name descname"><span class="pre">ResourceData</span></span><a class="headerlink" href="#ResourceData" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResourceData fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resourcetype"><span class="std std-ref">daBfg::ResourceType</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-history"><span class="std std-ref">daBfg::History</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id85"><span class="problematic" id="id86">|structure_annotation-daBfg-ResourceData|</span></a></p>
+<span class="target" id="handle-dabfg-autoresolutiondata"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="AutoResolutionData">
+<span class="sig-name descname"><span class="pre">AutoResolutionData</span></span><a class="headerlink" href="#AutoResolutionData" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>AutoResolutionData fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>multiplier</p></td>
+<td rowspan="2"><p>float</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>id</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-autorestypenameid"><span class="std std-ref">daBfg::AutoResTypeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id87"><span class="problematic" id="id88">|structure_annotation-daBfg-AutoResolutionData|</span></a></p>
+<span class="target" id="handle-dabfg-shaderblocklayersinfo"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ShaderBlockLayersInfo">
+<span class="sig-name descname"><span class="pre">ShaderBlockLayersInfo</span></span><a class="headerlink" href="#ShaderBlockLayersInfo" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ShaderBlockLayersInfo fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 79%" />
+<col style="width: 21%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>sceneLayer</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>objectLayer</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>frameLayer</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id89"><span class="problematic" id="id90">|structure_annotation-daBfg-ShaderBlockLayersInfo|</span></a></p>
+<span class="target" id="handle-dabfg-vrsstaterequirements"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VrsStateRequirements">
+<span class="sig-name descname"><span class="pre">VrsStateRequirements</span></span><a class="headerlink" href="#VrsStateRequirements" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VrsStateRequirements fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>rateTextureResId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resnameid"><span class="std std-ref">daBfg::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>pixelCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-variablerateshadingcombiner"><span class="std std-ref">daBfg::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateY</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vertexCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-variablerateshadingcombiner"><span class="std std-ref">daBfg::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateX</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id91"><span class="problematic" id="id92">|structure_annotation-daBfg-VrsStateRequirements|</span></a></p>
+<span class="target" id="handle-dabfg-virtualsubresourceref"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualSubresourceRef">
+<span class="sig-name descname"><span class="pre">VirtualSubresourceRef</span></span><a class="headerlink" href="#VirtualSubresourceRef" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualSubresourceRef fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>layer</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nameId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resnameid"><span class="std std-ref">daBfg::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevel</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id93"><span class="problematic" id="id94">|structure_annotation-daBfg-VirtualSubresourceRef|</span></a></p>
+<span class="target" id="handle-dabfg-binding"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="Binding">
+<span class="sig-name descname"><span class="pre">Binding</span></span><a class="headerlink" href="#Binding" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Binding fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 87%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>bindType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-bindingtype"><span class="std std-ref">daBfg::BindingType</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resource</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resnameid"><span class="std std-ref">daBfg::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id95"><span class="problematic" id="id96">|structure_annotation-daBfg-Binding|</span></a></p>
+<span class="target" id="handle-dabfg-resourceusage"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResourceUsage">
+<span class="sig-name descname"><span class="pre">ResourceUsage</span></span><a class="headerlink" href="#ResourceUsage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResourceUsage fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 82%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>stage</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-stage"><span class="std std-ref">daBfg::Stage</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>usageType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-usage"><span class="std std-ref">daBfg::Usage</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>access</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-access"><span class="std std-ref">daBfg::Access</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id97"><span class="problematic" id="id98">|structure_annotation-daBfg-ResourceUsage|</span></a></p>
+<span class="target" id="handle-dabfg-resourcerequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResourceRequest">
+<span class="sig-name descname"><span class="pre">ResourceRequest</span></span><a class="headerlink" href="#ResourceRequest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResourceRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>usage</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-resourceusage"><span class="std std-ref">daBfg::ResourceUsage</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slotRequest</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>optional</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id99"><span class="problematic" id="id100">|structure_annotation-daBfg-ResourceRequest|</span></a></p>
+<span class="target" id="handle-dabfg-bufferresourcedescription"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="BufferResourceDescription">
+<span class="sig-name descname"><span class="pre">BufferResourceDescription</span></span><a class="headerlink" href="#BufferResourceDescription" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>BufferResourceDescription fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 81%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>viewFormat</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>activation</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-resourceactivationaction"><span class="std std-ref">daBfg::ResourceActivationAction</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>elementCount</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>cFlags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>elementSizeInBytes</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id101"><span class="problematic" id="id102">|structure_annotation-daBfg-BufferResourceDescription|</span></a></p>
+<span class="target" id="handle-dabfg-nodestaterequirements"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NodeStateRequirements">
+<span class="sig-name descname"><span class="pre">NodeStateRequirements</span></span><a class="headerlink" href="#NodeStateRequirements" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NodeStateRequirements fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 82%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>supportsWireframe</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>pipelineStateOverride</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::optional`OverrideState</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vrsState</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::optional`VrsStateRequirements</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id103"><span class="problematic" id="id104">|structure_annotation-daBfg-NodeStateRequirements|</span></a></p>
+<span class="target" id="handle-dabfg-virtualpassrequirements"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="VirtualPassRequirements">
+<span class="sig-name descname"><span class="pre">VirtualPassRequirements</span></span><a class="headerlink" href="#VirtualPassRequirements" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualPassRequirements fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 87%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>colorAttachments</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVector`VirtualSubresourceRef`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>depthReadOnly</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>depthAttachment</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-virtualsubresourceref"><span class="std std-ref">daBfg::VirtualSubresourceRef</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id105"><span class="problematic" id="id106">|structure_annotation-daBfg-VirtualPassRequirements|</span></a></p>
+<span class="target" id="handle-dabfg-nodedata"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NodeData">
+<span class="sig-name descname"><span class="pre">NodeData</span></span><a class="headerlink" href="#NodeData" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NodeData fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 82%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>multiplexingMode</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-multiplexingmode"><span class="std std-ref">daBfg::MultiplexingMode</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>generation</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>precedingNodeIds</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorSet`NodeNameId`4</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>modifiedResources</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorSet`ResNameId`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>followingNodeIds</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorSet`NodeNameId`4</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resourceRequests</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorMap`ResNameId`ResourceRequest`16</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>readResources</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorSet`ResNameId`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeSource</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::das_string</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>shaderBlockLayers</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-shaderblocklayersinfo"><span class="std std-ref">daBfg::ShaderBlockLayersInfo</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>bindings</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorMap`int`Binding`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>historyResourceReadRequests</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorMap`ResNameId`ResourceRequest`16</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>stateRequirements</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::optional`NodeStateRequirements</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>createdResources</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorSet`ResNameId`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>renderingRequirements</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::optional`VirtualPassRequirements</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>renamedResources</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVectorMap`ResNameId`ResNameId`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>priority</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>sideEffect</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-sideeffect"><span class="std std-ref">daBfg::SideEffect</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id107"><span class="problematic" id="id108">|structure_annotation-daBfg-NodeData|</span></a></p>
+<span class="target" id="handle-dabfg-resourceprovider"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="ResourceProvider">
+<span class="sig-name descname"><span class="pre">ResourceProvider</span></span><a class="headerlink" href="#ResourceProvider" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id109"><span class="problematic" id="id110">|structure_annotation-daBfg-ResourceProvider|</span></a></p>
+<span class="target" id="handle-dabfg-internalregistry"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="InternalRegistry">
+<span class="sig-name descname"><span class="pre">InternalRegistry</span></span><a class="headerlink" href="#InternalRegistry" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>InternalRegistry fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 6%" />
+<col style="width: 94%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resources</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::idIndexedMapping`ResNameId`ResourceData</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodes</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::idIndexedMapping`NodeNameId`NodeData</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>knownNames</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::idNameMap`NameSpaceNameId`ResNameId`NodeNameId`AutoResTypeNameId</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id111"><span class="problematic" id="id112">|structure_annotation-daBfg-InternalRegistry|</span></a></p>
+<span class="target" id="handle-dabfg-namespacerequest"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NameSpaceRequest">
+<span class="sig-name descname"><span class="pre">NameSpaceRequest</span></span><a class="headerlink" href="#NameSpaceRequest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NameSpaceRequest fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nameSpaceId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-namespacenameid"><span class="std std-ref">daBfg::NameSpaceNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id113"><span class="problematic" id="id114">|structure_annotation-daBfg-NameSpaceRequest|</span></a></p>
+<span class="target" id="handle-dabfg-registry"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="Registry">
+<span class="sig-name descname"><span class="pre">Registry</span></span><a class="headerlink" href="#Registry" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Registry fields are</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-internalregistry"><span class="std std-ref">daBfg::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nameSpaceId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-namespacenameid"><span class="std std-ref">daBfg::NameSpaceNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id115"><span class="problematic" id="id116">|structure_annotation-daBfg-Registry|</span></a></p>
+<span class="target" id="handle-dabfg-nodetracker"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NodeTracker">
+<span class="sig-name descname"><span class="pre">NodeTracker</span></span><a class="headerlink" href="#NodeTracker" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id117"><span class="problematic" id="id118">|structure_annotation-daBfg-NodeTracker|</span></a></p>
+<span class="target" id="handle-dabfg-nodehandle"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="NodeHandle">
+<span class="sig-name descname"><span class="pre">NodeHandle</span></span><a class="headerlink" href="#NodeHandle" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id119"><span class="problematic" id="id120">|structure_annotation-daBfg-NodeHandle|</span></a></p>
+</section>
+<section id="function-annotations">
+<h2>Function annotations<a class="headerlink" href="#function-annotations" title="Permalink to this heading"></a></h2>
+<span class="target" id="handle-dabfg-bfg-ecs-node"></span><dl class="das attribute">
+<dt class="sig sig-object das" id="bfg_ecs_node">
+<span class="sig-name descname"><span class="pre">bfg_ecs_node</span></span><a class="headerlink" href="#bfg_ecs_node" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>This annotation reloads nodes on the fly after script reloading.
+It is designed for functions accepting temp value or ref to <a class="reference internal" href="#handle-dabfg-nodehandle"><span class="std std-ref">daBfg::NodeHandle</span></a>, acquired from ecs system.
+Annotation accepts three parameters:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string name of registred node inside annotated function</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>entity</p></td>
+<td rowspan="2"><p>string name of entity in which node is stored</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>handle</p></td>
+<td rowspan="2"><p>string name of component of type <a class="reference internal" href="graphState.html#_CPPv4N5dabfg10NodeHandleE" title="dabfg::NodeHandle"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">dabfg::NodeHandle</span></code></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+</section>
+<section id="top-level-functions">
+<h2>Top level functions<a class="headerlink" href="#top-level-functions" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-registernode-ih-ls-dabfg-c-c-nodetracker-gr-ce-ls-dabfg-c-c-nodenameid-gr"><span class="std std-ref">registerNode (arg0:daBfg::NodeTracker implicit;arg1:daBfg::NodeNameId const) : void</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-get-shader-variable-id-cis"><span class="std std-ref">get_shader_variable_id (arg0:string const implicit) : int</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-resetnode-ih-ls-dabfg-c-c-nodehandle-gr"><span class="std std-ref">resetNode (arg0:daBfg::NodeHandle implicit) : void</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-root"><span class="std std-ref">root () : daBfg::NameSpace</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-fillslot-s-ls-dabfg-c-c-namespace-gr-cs-ls-dabfg-c-c-namedslot-gr-cs-ls-dabfg-c-c-namespace-gr-cs"><span class="std std-ref">fillSlot (self:daBfg::NameSpace -const;slot:daBfg::NamedSlot const;res_name_space:daBfg::NameSpace const;res_name:string const) : auto</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-registernode-s-ls-dabfg-c-c-namespace-gr-cs-n-ls-reg-gr-0-ls-h-ls-dabfg-c-c-registry-gr-gr-1-ls-1-ls-v-gr-at-gr-at"><span class="std std-ref">registerNode (self:daBfg::NameSpace -const;name:string const;declaration_callback:lambda&lt;(var reg:daBfg::Registry -const):lambda&lt;void&gt;&gt; -const) : daBfg::NodeHandle</span></a></p></li>
+</ul>
+</div></blockquote>
+<span class="target" id="function-at-dabfg-c-c-registernode-ih-ls-dabfg-c-c-nodetracker-gr-ce-ls-dabfg-c-c-nodenameid-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="registerNode">
+<span class="sig-name descname"><span class="pre">registerNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">NodeTracker</span> <span class="pre">implicit;</span> <span class="pre">arg1:</span> <span class="pre">NodeNameId</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#registerNode" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-nodetracker"><span class="std std-ref">daBfg::NodeTracker</span></a>  implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg1</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-nodenameid"><span class="std std-ref">daBfg::NodeNameId</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id121"><span class="problematic" id="id122">|function-daBfg-registerNode|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-get-shader-variable-id-cis"></span><dl class="das function">
+<dt class="sig sig-object das" id="get_shader_variable_id">
+<span class="sig-name descname"><span class="pre">get_shader_variable_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">string</span> <span class="pre">const</span> <span class="pre">implicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#get_shader_variable_id" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>get_shader_variable_id returns int</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 72%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p>string const implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id123"><span class="problematic" id="id124">|function-daBfg-get_shader_variable_id|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-resetnode-ih-ls-dabfg-c-c-nodehandle-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="resetNode">
+<span class="sig-name descname"><span class="pre">resetNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">NodeHandle</span> <span class="pre">implicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#resetNode" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 88%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-nodehandle"><span class="std std-ref">daBfg::NodeHandle</span></a>  implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id125"><span class="problematic" id="id126">|function-daBfg-resetNode|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-root"></span><dl class="das function">
+<dt class="sig sig-object das" id="root">
+<span class="sig-name descname"><span class="pre">root</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#root" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>root returns  <a class="reference internal" href="#struct-dabfg-namespace"><span class="std std-ref">daBfg::NameSpace</span></a></p>
+<p><a href="#id127"><span class="problematic" id="id128">|function-daBfg-root|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-fillslot-s-ls-dabfg-c-c-namespace-gr-cs-ls-dabfg-c-c-namedslot-gr-cs-ls-dabfg-c-c-namespace-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="fillSlot">
+<span class="sig-name descname"><span class="pre">fillSlot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpace;</span> <span class="pre">slot:</span> <span class="pre">NamedSlot</span> <span class="pre">const;</span> <span class="pre">res_name_space:</span> <span class="pre">NameSpace</span> <span class="pre">const;</span> <span class="pre">res_name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fillSlot" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>fillSlot returns auto</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 80%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namespace"><span class="std std-ref">daBfg::NameSpace</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slot</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namedslot"><span class="std std-ref">daBfg::NamedSlot</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>res_name_space</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namespace"><span class="std std-ref">daBfg::NameSpace</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>res_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id129"><span class="problematic" id="id130">|function-daBfg-fillSlot|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-registernode-s-ls-dabfg-c-c-namespace-gr-cs-n-ls-reg-gr-0-ls-h-ls-dabfg-c-c-registry-gr-gr-1-ls-1-ls-v-gr-at-gr-at"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">registerNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpace;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">declaration_callback:</span> <span class="pre">lambda&lt;(var</span> <span class="pre">reg:daBfg::Registry</span> <span class="pre">-const):lambda&lt;void&gt;&gt;</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>registerNode returns  <a class="reference internal" href="#handle-dabfg-nodehandle"><span class="std std-ref">daBfg::NodeHandle</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 78%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namespace"><span class="std std-ref">daBfg::NameSpace</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>declaration_callback</p></td>
+<td rowspan="2"><p>lambda&lt;(reg: <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a> ):lambda&lt;&gt;&gt;</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id131"><span class="problematic" id="id132">|function-daBfg-registerNode|</span></a></p>
+</section>
+<section id="registry-manipulation">
+<h2>Registry manipulation<a class="headerlink" href="#registry-manipulation" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-ordermebefore-h-ls-dabfg-c-c-registry-gr-cs"><span class="std std-ref">orderMeBefore (self:daBfg::Registry -const;name:string const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-ordermebefore-h-ls-dabfg-c-c-registry-gr-c1-ls-s-gr-a"><span class="std std-ref">orderMeBefore (self:daBfg::Registry -const;names:array&lt;string&gt; const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-ordermeafter-h-ls-dabfg-c-c-registry-gr-cs"><span class="std std-ref">orderMeAfter (self:daBfg::Registry -const;name:string const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-ordermeafter-h-ls-dabfg-c-c-registry-gr-c1-ls-s-gr-a"><span class="std std-ref">orderMeAfter (self:daBfg::Registry -const;names:array&lt;string&gt; const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-setpriority-h-ls-dabfg-c-c-registry-gr-ci"><span class="std std-ref">setPriority (self:daBfg::Registry -const;priority:int const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-multiplex-h-ls-dabfg-c-c-registry-gr-ce-ls-dabfg-c-c-multiplexingmode-gr"><span class="std std-ref">multiplex (self:daBfg::Registry -const;multiplexing_mode:daBfg::MultiplexingMode const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-executionhas-h-ls-dabfg-c-c-registry-gr-ce8-ls-dabfg-c-c-sideeffect-gr"><span class="std std-ref">executionHas (self:daBfg::Registry -const;side_effect:daBfg::SideEffect const) : daBfg::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-create-h-ls-dabfg-c-c-registry-gr-cs-ce8-ls-dabfg-c-c-history-gr"><span class="std std-ref">create (self:daBfg::Registry -const;name:string const;history:daBfg::History const) : daBfg::VirtualResourceCreationSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-read-h-ls-dabfg-c-c-namespacerequest-gr-cs"><span class="std std-ref">read (self:daBfg::NameSpaceRequest -const;name:string const) : daBfg::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-read-h-ls-dabfg-c-c-namespacerequest-gr-cs-ls-dabfg-c-c-namedslot-gr"><span class="std std-ref">read (self:daBfg::NameSpaceRequest -const;slot:daBfg::NamedSlot const) : daBfg::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-history-h-ls-dabfg-c-c-namespacerequest-gr-s"><span class="std std-ref">history (self:daBfg::NameSpaceRequest -const;name:string -const) : daBfg::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-modify-h-ls-dabfg-c-c-namespacerequest-gr-cs"><span class="std std-ref">modify (self:daBfg::NameSpaceRequest -const;name:string const) : daBfg::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-modify-h-ls-dabfg-c-c-namespacerequest-gr-cs-ls-dabfg-c-c-namedslot-gr"><span class="std std-ref">modify (self:daBfg::NameSpaceRequest -const;slot:daBfg::NamedSlot const) : daBfg::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-rename-h-ls-dabfg-c-c-namespacerequest-gr-cs-cs-ce8-ls-dabfg-c-c-history-gr"><span class="std std-ref">rename (self:daBfg::NameSpaceRequest -const;from:string const;to:string const;history:daBfg::History const) : daBfg::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-requeststate-h-ls-dabfg-c-c-registry-gr"><span class="std std-ref">requestState (self:daBfg::Registry -const) : daBfg::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-requestrenderpass-h-ls-dabfg-c-c-registry-gr"><span class="std std-ref">requestRenderPass (self:daBfg::Registry -const) : daBfg::VirtualPassRequest</span></a></p></li>
+</ul>
+</div></blockquote>
+<span class="target" id="function-at-dabfg-c-c-ordermebefore-h-ls-dabfg-c-c-registry-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="orderMeBefore">
+<span class="sig-name descname"><span class="pre">orderMeBefore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#orderMeBefore" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>orderMeBefore returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id133"><span class="problematic" id="id134">|function-daBfg-orderMeBefore|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-ordermebefore-h-ls-dabfg-c-c-registry-gr-c1-ls-s-gr-a"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">orderMeBefore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">names:</span> <span class="pre">array&lt;string&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>orderMeBefore returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>names</p></td>
+<td rowspan="2"><p>array&lt;string&gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id135"><span class="problematic" id="id136">|function-daBfg-orderMeBefore|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-ordermeafter-h-ls-dabfg-c-c-registry-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="orderMeAfter">
+<span class="sig-name descname"><span class="pre">orderMeAfter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#orderMeAfter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>orderMeAfter returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id137"><span class="problematic" id="id138">|function-daBfg-orderMeAfter|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-ordermeafter-h-ls-dabfg-c-c-registry-gr-c1-ls-s-gr-a"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">orderMeAfter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">names:</span> <span class="pre">array&lt;string&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>orderMeAfter returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>names</p></td>
+<td rowspan="2"><p>array&lt;string&gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id139"><span class="problematic" id="id140">|function-daBfg-orderMeAfter|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-setpriority-h-ls-dabfg-c-c-registry-gr-ci"></span><dl class="das function">
+<dt class="sig sig-object das" id="setPriority">
+<span class="sig-name descname"><span class="pre">setPriority</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">priority:</span> <span class="pre">int</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setPriority" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setPriority returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>priority</p></td>
+<td rowspan="2"><p>int const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id141"><span class="problematic" id="id142">|function-daBfg-setPriority|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-multiplex-h-ls-dabfg-c-c-registry-gr-ce-ls-dabfg-c-c-multiplexingmode-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="multiplex">
+<span class="sig-name descname"><span class="pre">multiplex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">multiplexing_mode:</span> <span class="pre">MultiplexingMode</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multiplex" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>multiplex returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 80%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>multiplexing_mode</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-multiplexingmode"><span class="std std-ref">daBfg::MultiplexingMode</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id143"><span class="problematic" id="id144">|function-daBfg-multiplex|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-executionhas-h-ls-dabfg-c-c-registry-gr-ce8-ls-dabfg-c-c-sideeffect-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="executionHas">
+<span class="sig-name descname"><span class="pre">executionHas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">side_effect:</span> <span class="pre">SideEffect</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#executionHas" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>executionHas returns  <a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>side_effect</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-sideeffect"><span class="std std-ref">daBfg::SideEffect</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id145"><span class="problematic" id="id146">|function-daBfg-executionHas|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-create-h-ls-dabfg-c-c-registry-gr-cs-ce8-ls-dabfg-c-c-history-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="create">
+<span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">history:</span> <span class="pre">History</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#create" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>create returns  <a class="reference internal" href="#struct-dabfg-virtualresourcecreationsemirequest"><span class="std std-ref">daBfg::VirtualResourceCreationSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-history"><span class="std std-ref">daBfg::History</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id147"><span class="problematic" id="id148">|function-daBfg-create|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-read-h-ls-dabfg-c-c-namespacerequest-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#read" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>read returns  <a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id149"><span class="problematic" id="id150">|function-daBfg-read|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-read-h-ls-dabfg-c-c-namespacerequest-gr-cs-ls-dabfg-c-c-namedslot-gr"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">slot:</span> <span class="pre">NamedSlot</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>read returns  <a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slot</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namedslot"><span class="std std-ref">daBfg::NamedSlot</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id151"><span class="problematic" id="id152">|function-daBfg-read|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-history-h-ls-dabfg-c-c-namespacerequest-gr-s"></span><dl class="das function">
+<dt class="sig sig-object das" id="history">
+<span class="sig-name descname"><span class="pre">history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">name:</span> <span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#history" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>history returns  <a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id153"><span class="problematic" id="id154">|function-daBfg-history|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-modify-h-ls-dabfg-c-c-namespacerequest-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="modify">
+<span class="sig-name descname"><span class="pre">modify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#modify" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>modify returns  <a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id155"><span class="problematic" id="id156">|function-daBfg-modify|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-modify-h-ls-dabfg-c-c-namespacerequest-gr-cs-ls-dabfg-c-c-namedslot-gr"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">modify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">slot:</span> <span class="pre">NamedSlot</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>modify returns  <a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slot</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namedslot"><span class="std std-ref">daBfg::NamedSlot</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id157"><span class="problematic" id="id158">|function-daBfg-modify|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-rename-h-ls-dabfg-c-c-namespacerequest-gr-cs-cs-ce8-ls-dabfg-c-c-history-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="rename">
+<span class="sig-name descname"><span class="pre">rename</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">from:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">to:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">history:</span> <span class="pre">History</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rename" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>rename returns  <a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>from</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>to</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-history"><span class="std std-ref">daBfg::History</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id159"><span class="problematic" id="id160">|function-daBfg-rename|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-requeststate-h-ls-dabfg-c-c-registry-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="requestState">
+<span class="sig-name descname"><span class="pre">requestState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#requestState" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>requestState returns  <a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id161"><span class="problematic" id="id162">|function-daBfg-requestState|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-requestrenderpass-h-ls-dabfg-c-c-registry-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="requestRenderPass">
+<span class="sig-name descname"><span class="pre">requestRenderPass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#requestRenderPass" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>requestRenderPass returns  <a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-registry"><span class="std std-ref">daBfg::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id163"><span class="problematic" id="id164">|function-daBfg-requestRenderPass|</span></a></p>
+</section>
+<section id="request-manipulation">
+<h2>Request manipulation<a class="headerlink" href="#request-manipulation" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-texture-s-ls-dabfg-c-c-virtualresourcecreationsemirequest-gr-cs-ls-dabfg-c-c-texture2dcreateinfo-gr"><span class="std std-ref">texture (self:daBfg::VirtualResourceCreationSemiRequest -const;info:daBfg::Texture2dCreateInfo const) : daBfg::VirtualTextureRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-texture-s-ls-dabfg-c-c-virtualresourcesemirequest-gr"><span class="std std-ref">texture (self:daBfg::VirtualResourceSemiRequest -const) : daBfg::VirtualTextureRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-buffer-s-ls-dabfg-c-c-virtualresourcecreationsemirequest-gr-cs-ls-dabfg-c-c-buffercreateinfo-gr"><span class="std std-ref">buffer (self:daBfg::VirtualResourceCreationSemiRequest -const;info:daBfg::BufferCreateInfo const) : daBfg::VirtualBufferRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-buffer-s-ls-dabfg-c-c-virtualresourcesemirequest-gr"><span class="std std-ref">buffer (self:daBfg::VirtualResourceSemiRequest -const) : daBfg::VirtualBufferRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-blob-s-ls-dabfg-c-c-virtualresourcesemirequest-gr"><span class="std std-ref">blob (self:daBfg::VirtualResourceSemiRequest -const) : daBfg::VirtualResourceRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-useas-y-ls-tt-gr-ce-ls-dabfg-c-c-usage-gr"><span class="std std-ref">useAs (self:auto(TT) -const;usageType:daBfg::Usage const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-atstage-y-ls-tt-gr-ce-ls-dabfg-c-c-stage-gr"><span class="std std-ref">atStage (self:auto(TT) -const;stage:daBfg::Stage const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-bindtoshadervar-y-ls-tt-gr-cs"><span class="std std-ref">bindToShaderVar (self:auto(TT) -const;name:string const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-handle-cs-ls-dabfg-c-c-virtualtexturerequest-gr"><span class="std std-ref">handle (self:daBfg::VirtualTextureRequest const) : daBfg::VirtualTextureHandle</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-handle-cs-ls-dabfg-c-c-virtualbufferrequest-gr"><span class="std std-ref">handle (self:daBfg::VirtualBufferRequest const) : daBfg::VirtualBufferHandle</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-view-cs-ls-dabfg-c-c-virtualtexturehandle-gr"><span class="std std-ref">view (handle:daBfg::VirtualTextureHandle const) : DagorResPtr::ManagedTexView</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-view-cs-ls-dabfg-c-c-virtualbufferhandle-gr"><span class="std std-ref">view (handle:daBfg::VirtualBufferHandle const) : DagorResPtr::ManagedBufView</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-setframeblock-s-ls-dabfg-c-c-staterequest-gr-cs"><span class="std std-ref">setFrameBlock (self:daBfg::StateRequest -const;name:string const) : daBfg::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-setsceneblock-s-ls-dabfg-c-c-staterequest-gr-cs"><span class="std std-ref">setSceneBlock (self:daBfg::StateRequest -const;name:string const) : daBfg::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-setobjectblock-s-ls-dabfg-c-c-staterequest-gr-cs"><span class="std std-ref">setObjectBlock (self:daBfg::StateRequest -const;name:string const) : daBfg::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-allowwireframe-s-ls-dabfg-c-c-staterequest-gr"><span class="std std-ref">allowWireFrame (self:daBfg::StateRequest -const) : daBfg::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-allowvrs-s-ls-dabfg-c-c-staterequest-gr-cs-ls-dabfg-c-c-vrsrequirements-gr"><span class="std std-ref">allowVrs (self:daBfg::StateRequest -const;vrs:daBfg::VrsRequirements const) : daBfg::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-enableoverride-s-ls-dabfg-c-c-staterequest-gr-cs-ls-dagordriver3d-c-c-overriderenderstate-gr"><span class="std std-ref">enableOverride (self:daBfg::StateRequest -const;das_override:DagorDriver3D::OverrideRenderState const) : auto</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-color-s-ls-dabfg-c-c-virtualpassrequest-gr-c-1-s-ls-dabfg-c-c-virtualtexturerequest-gr"><span class="std std-ref">color (self:daBfg::VirtualPassRequest -const;requests:daBfg::VirtualTextureRequest const[]) : daBfg::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-color-s-ls-dabfg-c-c-virtualpassrequest-gr-c-1-s"><span class="std std-ref">color (self:daBfg::VirtualPassRequest -const;names:string const[]) : daBfg::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-color-s-ls-dabfg-c-c-virtualpassrequest-gr-c1-ls-s-ls-dabfg-c-c-virtualattachmentrequest-gr-gr-a"><span class="std std-ref">color (self:daBfg::VirtualPassRequest -const;attachments:array&lt;daBfg::VirtualAttachmentRequest&gt; const) : daBfg::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-depthrw-s-ls-dabfg-c-c-virtualpassrequest-gr-c"><span class="std std-ref">depthRw (self:daBfg::VirtualPassRequest -const;attachment:auto const) : daBfg::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dabfg-c-c-depthro-s-ls-dabfg-c-c-virtualpassrequest-gr-c"><span class="std std-ref">depthRo (self:daBfg::VirtualPassRequest -const;attachment:auto const) : daBfg::VirtualPassRequest</span></a></p></li>
+</ul>
+</div></blockquote>
+<span class="target" id="function-at-dabfg-c-c-texture-s-ls-dabfg-c-c-virtualresourcecreationsemirequest-gr-cs-ls-dabfg-c-c-texture2dcreateinfo-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="texture">
+<span class="sig-name descname"><span class="pre">texture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceCreationSemiRequest;</span> <span class="pre">info:</span> <span class="pre">Texture2dCreateInfo</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#texture" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>texture returns  <a class="reference internal" href="#struct-dabfg-virtualtexturerequest"><span class="std std-ref">daBfg::VirtualTextureRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 93%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualresourcecreationsemirequest"><span class="std std-ref">daBfg::VirtualResourceCreationSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>info</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-texture2dcreateinfo"><span class="std std-ref">daBfg::Texture2dCreateInfo</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id165"><span class="problematic" id="id166">|function-daBfg-texture|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-texture-s-ls-dabfg-c-c-virtualresourcesemirequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">texture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceSemiRequest</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>texture returns  <a class="reference internal" href="#struct-dabfg-virtualtexturerequest"><span class="std std-ref">daBfg::VirtualTextureRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id167"><span class="problematic" id="id168">|function-daBfg-texture|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-buffer-s-ls-dabfg-c-c-virtualresourcecreationsemirequest-gr-cs-ls-dabfg-c-c-buffercreateinfo-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="buffer">
+<span class="sig-name descname"><span class="pre">buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceCreationSemiRequest;</span> <span class="pre">info:</span> <span class="pre">BufferCreateInfo</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#buffer" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>buffer returns  <a class="reference internal" href="#struct-dabfg-virtualbufferrequest"><span class="std std-ref">daBfg::VirtualBufferRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 93%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualresourcecreationsemirequest"><span class="std std-ref">daBfg::VirtualResourceCreationSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>info</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-buffercreateinfo"><span class="std std-ref">daBfg::BufferCreateInfo</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id169"><span class="problematic" id="id170">|function-daBfg-buffer|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-buffer-s-ls-dabfg-c-c-virtualresourcesemirequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceSemiRequest</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>buffer returns  <a class="reference internal" href="#struct-dabfg-virtualbufferrequest"><span class="std std-ref">daBfg::VirtualBufferRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id171"><span class="problematic" id="id172">|function-daBfg-buffer|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-blob-s-ls-dabfg-c-c-virtualresourcesemirequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="blob">
+<span class="sig-name descname"><span class="pre">blob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceSemiRequest</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#blob" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>blob returns  <a class="reference internal" href="#struct-dabfg-virtualresourcerequest"><span class="std std-ref">daBfg::VirtualResourceRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualresourcesemirequest"><span class="std std-ref">daBfg::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id173"><span class="problematic" id="id174">|function-daBfg-blob|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-useas-y-ls-tt-gr-ce-ls-dabfg-c-c-usage-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="useAs">
+<span class="sig-name descname"><span class="pre">useAs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT);</span> <span class="pre">usageType:</span> <span class="pre">Usage</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#useAs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>useAs returns TT</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>usageType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-usage"><span class="std std-ref">daBfg::Usage</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id175"><span class="problematic" id="id176">|function-daBfg-useAs|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-atstage-y-ls-tt-gr-ce-ls-dabfg-c-c-stage-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="atStage">
+<span class="sig-name descname"><span class="pre">atStage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT);</span> <span class="pre">stage:</span> <span class="pre">Stage</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#atStage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>atStage returns TT</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 85%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>stage</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-stage"><span class="std std-ref">daBfg::Stage</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id177"><span class="problematic" id="id178">|function-daBfg-atStage|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-bindtoshadervar-y-ls-tt-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="bindToShaderVar">
+<span class="sig-name descname"><span class="pre">bindToShaderVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT);</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bindToShaderVar" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>bindToShaderVar returns TT</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 62%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id179"><span class="problematic" id="id180">|function-daBfg-bindToShaderVar|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-handle-cs-ls-dabfg-c-c-virtualtexturerequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="handle">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualTextureRequest</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#handle" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>handle returns  <a class="reference internal" href="#struct-dabfg-virtualtexturehandle"><span class="std std-ref">daBfg::VirtualTextureHandle</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualtexturerequest"><span class="std std-ref">daBfg::VirtualTextureRequest</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id181"><span class="problematic" id="id182">|function-daBfg-handle|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-handle-cs-ls-dabfg-c-c-virtualbufferrequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualBufferRequest</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>handle returns  <a class="reference internal" href="#struct-dabfg-virtualbufferhandle"><span class="std std-ref">daBfg::VirtualBufferHandle</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualbufferrequest"><span class="std std-ref">daBfg::VirtualBufferRequest</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id183"><span class="problematic" id="id184">|function-daBfg-handle|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-view-cs-ls-dabfg-c-c-virtualtexturehandle-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="view">
+<span class="sig-name descname"><span class="pre">view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle:</span> <span class="pre">VirtualTextureHandle</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#view" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>view returns  <span class="xref std std-ref">DagorResPtr::ManagedTexView</span></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>handle</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualtexturehandle"><span class="std std-ref">daBfg::VirtualTextureHandle</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id185"><span class="problematic" id="id186">|function-daBfg-view|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-view-cs-ls-dabfg-c-c-virtualbufferhandle-gr"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle:</span> <span class="pre">VirtualBufferHandle</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>view returns  <span class="xref std std-ref">DagorResPtr::ManagedBufView</span></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>handle</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualbufferhandle"><span class="std std-ref">daBfg::VirtualBufferHandle</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id187"><span class="problematic" id="id188">|function-daBfg-view|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-setframeblock-s-ls-dabfg-c-c-staterequest-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="setFrameBlock">
+<span class="sig-name descname"><span class="pre">setFrameBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setFrameBlock" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setFrameBlock returns  <a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 88%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id189"><span class="problematic" id="id190">|function-daBfg-setFrameBlock|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-setsceneblock-s-ls-dabfg-c-c-staterequest-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="setSceneBlock">
+<span class="sig-name descname"><span class="pre">setSceneBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setSceneBlock" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setSceneBlock returns  <a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 88%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id191"><span class="problematic" id="id192">|function-daBfg-setSceneBlock|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-setobjectblock-s-ls-dabfg-c-c-staterequest-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="setObjectBlock">
+<span class="sig-name descname"><span class="pre">setObjectBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setObjectBlock" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setObjectBlock returns  <a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 88%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id193"><span class="problematic" id="id194">|function-daBfg-setObjectBlock|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-allowwireframe-s-ls-dabfg-c-c-staterequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="allowWireFrame">
+<span class="sig-name descname"><span class="pre">allowWireFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#allowWireFrame" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>allowWireFrame returns  <a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 88%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id195"><span class="problematic" id="id196">|function-daBfg-allowWireFrame|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-allowvrs-s-ls-dabfg-c-c-staterequest-gr-cs-ls-dabfg-c-c-vrsrequirements-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="allowVrs">
+<span class="sig-name descname"><span class="pre">allowVrs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">vrs:</span> <span class="pre">VrsRequirements</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#allowVrs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>allowVrs returns  <a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vrs</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-vrsrequirements"><span class="std std-ref">daBfg::VrsRequirements</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id197"><span class="problematic" id="id198">|function-daBfg-allowVrs|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-enableoverride-s-ls-dabfg-c-c-staterequest-gr-cs-ls-dagordriver3d-c-c-overriderenderstate-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="enableOverride">
+<span class="sig-name descname"><span class="pre">enableOverride</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">das_override:</span> <span class="pre">OverrideRenderState</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#enableOverride" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>enableOverride returns auto</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 88%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-staterequest"><span class="std std-ref">daBfg::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>das_override</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">DagorDriver3D::OverrideRenderState</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id199"><span class="problematic" id="id200">|function-daBfg-enableOverride|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-color-s-ls-dabfg-c-c-virtualpassrequest-gr-c-1-s-ls-dabfg-c-c-virtualtexturerequest-gr"></span><dl class="das function">
+<dt class="sig sig-object das" id="color">
+<span class="sig-name descname"><span class="pre">color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">requests:</span> <span class="pre">VirtualTextureRequest</span> <span class="pre">const[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#color" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>color returns  <a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 91%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>requests</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualtexturerequest"><span class="std std-ref">daBfg::VirtualTextureRequest</span></a>  const[-1]</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id201"><span class="problematic" id="id202">|function-daBfg-color|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-color-s-ls-dabfg-c-c-virtualpassrequest-gr-c-1-s"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">names:</span> <span class="pre">string</span> <span class="pre">const[]</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>color returns  <a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>names</p></td>
+<td rowspan="2"><p>string const[-1]</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id203"><span class="problematic" id="id204">|function-daBfg-color|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-color-s-ls-dabfg-c-c-virtualpassrequest-gr-c1-ls-s-ls-dabfg-c-c-virtualattachmentrequest-gr-gr-a"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">attachments:</span> <span class="pre">array&lt;daBfg::VirtualAttachmentRequest&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>color returns  <a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>attachments</p></td>
+<td rowspan="2"><p>array&lt; <a class="reference internal" href="#struct-dabfg-virtualattachmentrequest"><span class="std std-ref">daBfg::VirtualAttachmentRequest</span></a> &gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id205"><span class="problematic" id="id206">|function-daBfg-color|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-depthrw-s-ls-dabfg-c-c-virtualpassrequest-gr-c"></span><dl class="das function">
+<dt class="sig sig-object das" id="depthRw">
+<span class="sig-name descname"><span class="pre">depthRw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">attachment:</span> <span class="pre">auto</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#depthRw" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>depthRw returns  <a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 87%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>attachment</p></td>
+<td rowspan="2"><p>auto const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id207"><span class="problematic" id="id208">|function-daBfg-depthRw|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-depthro-s-ls-dabfg-c-c-virtualpassrequest-gr-c"></span><dl class="das function">
+<dt class="sig sig-object das" id="depthRo">
+<span class="sig-name descname"><span class="pre">depthRo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">attachment:</span> <span class="pre">auto</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#depthRo" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>depthRo returns  <a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 87%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-virtualpassrequest"><span class="std std-ref">daBfg::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>attachment</p></td>
+<td rowspan="2"><p>auto const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id209"><span class="problematic" id="id210">|function-daBfg-depthRo|</span></a></p>
+</section>
+<section id="uncategorized">
+<h2>Uncategorized<a class="headerlink" href="#uncategorized" title="Permalink to this heading"></a></h2>
+<span class="target" id="function-at-dabfg-c-c-fill-slot-ce-ls-dabfg-c-c-namespacenameid-gr-cis-ce-ls-dabfg-c-c-namespacenameid-gr-cis"></span><dl class="das function">
+<dt class="sig sig-object das" id="fill_slot">
+<span class="sig-name descname"><span class="pre">fill_slot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">NameSpaceNameId</span> <span class="pre">const;</span> <span class="pre">arg1:</span> <span class="pre">string</span> <span class="pre">const</span> <span class="pre">implicit;</span> <span class="pre">arg2:</span> <span class="pre">NameSpaceNameId</span> <span class="pre">const;</span> <span class="pre">arg3:</span> <span class="pre">string</span> <span class="pre">const</span> <span class="pre">implicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fill_slot" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-namespacenameid"><span class="std std-ref">daBfg::NameSpaceNameId</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg1</p></td>
+<td rowspan="2"><p>string const implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg2</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dabfg-namespacenameid"><span class="std std-ref">daBfg::NameSpaceNameId</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg3</p></td>
+<td rowspan="2"><p>string const implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id211"><span class="problematic" id="id212">|function-daBfg-fill_slot|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-s-ls-dabfg-c-c-namespace-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das" id="operator /">
+<span class="sig-name descname"><span class="pre">operator</span> <span class="pre">/</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpace;</span> <span class="pre">child_name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#operator /" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>/ returns  <a class="reference internal" href="#struct-dabfg-namespace"><span class="std std-ref">daBfg::NameSpace</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 83%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-dabfg-namespace"><span class="std std-ref">daBfg::NameSpace</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>child_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id213"><span class="problematic" id="id214">|function-daBfg-/|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-h-ls-dabfg-c-c-namespacerequest-gr-cs"></span><dl class="das function">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">operator</span> <span class="pre">/</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">child_name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>/ returns  <a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>child_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id215"><span class="problematic" id="id216">|function-daBfg-/|</span></a></p>
+<span class="target" id="function-at-dabfg-c-c-getresolution-h-ls-dabfg-c-c-namespacerequest-gr-cs-cf"></span><dl class="das function">
+<dt class="sig sig-object das" id="getResolution">
+<span class="sig-name descname"><span class="pre">getResolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">type_name:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">multiplier:</span> <span class="pre">float</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#getResolution" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>getResolution returns  <a class="reference internal" href="#struct-dabfg-autoresolutionrequest"><span class="std std-ref">daBfg::AutoResolutionRequest</span></a></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dabfg-namespacerequest"><span class="std std-ref">daBfg::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>type_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>multiplier</p></td>
+<td rowspan="2"><p>float const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id217"><span class="problematic" id="id218">|function-daBfg-getResolution|</span></a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="runtime.html" class="btn btn-neutral float-left" title="Dispatching Work in Nodes at Runtime" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../helperClasses.html" class="btn btn-neutral float-right" title="Helper classes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Jun 29, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

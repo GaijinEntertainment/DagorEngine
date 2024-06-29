@@ -1,0 +1,1023 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_nintendo_switch" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesNintendoSwitch</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_base" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1abcc856e93804e58d96163cdf41748cdb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports anisotropic filtering of textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1194" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a73f864712bc54068de226641de977f10" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports constant depth stencil targets that allow simultaneous sampling as a shader resource. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1196" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a90ded95712876ee8e0fb7b48e49675de" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports structured buffer types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1198" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1aaebcc7654e15533de9bb41c9b4dbcd71" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports locking of structured buffers with the no-overwrite method. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1200" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1adb12c81491114e5999a9b5f8e86e8e8f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports forced multi-sample count during raster phase. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1202" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a2597470b4348c3b012c8c36eeba8439b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports mipmaps for vol (eg 3D) textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1204" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ab8cc26637ffbc82fc4c4e1625949fb1a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports GpuPipeline::ASYNC_COMPUTE as selected pipeline when applicable. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae421f36c3e5e3382c12c9189b6ebc0b0" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCompute</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1206" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a0502167afcb6d392dc731dc8708ca070" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports occlusion queries. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1208" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1aa9dfc7b6b68fcb283d4b1e7d5bef0504" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports values other than 0 for <computeroutput>consts_offset</computeroutput> of d3d::set_const_buffer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1211" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ac4347b91422e4f7e2c6aee76cbf9a463" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDepthBoundsTest</definition>
+        <argsstring></argsstring>
+        <name>hasDepthBoundsTest</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports depth bounds testing. See d3d::set_depth_bounds for details of depth bounds testing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abda4bbbdebdb5c18b289e9053895e193" kindref="member">DeviceDriverCapabilitiesBase::hasDepthBoundsTest</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1213" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1aef8890f0804bd814fe0e5b1a188a1911" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports copy of textures of different but compatible formats. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1215" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1adb33dcb90a1cd5268baeb2cc2367f295" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports asynchronously issued copy operations. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1217" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a673216799601394d35367fa281a63a46" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports reading from multi-sampled depth stencil targets. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1219" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1219" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ac90ccc26acdf89ba0dfc2ce3de6f5898" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasInstanceID</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports instance id system variable in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a2ca9ae722f66c5f6f0c3b76cd0424c07" kindref="member">DeviceDriverCapabilitiesBase::hasInstanceID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1221" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1221" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ada655a307e7bb62896a56677fa2e8d18" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports conservative rastering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a903377bb582a3da6b2b8c276d6cbc463" kindref="member">DeviceDriverCapabilitiesBase::hasConservativeRassterization</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1223" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1223" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a7ed35e9baf5d98f15ed3171702d0e0cf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports quad tessellation. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1226" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1226" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ae4c893ae7b4e71acafd07ed94b518e4a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports gather intrinsic in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1228" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1228" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ae5eb51ca01c768b1f5be77fdca413fed" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the alpha to coverage raster feature. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1230" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1230" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1afed186bc030f9266afdbccbe2985b50a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasWellSupportedIndirect</definition>
+        <argsstring></argsstring>
+        <name>hasWellSupportedIndirect</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports indirect drawing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac087fa09d2db1f17bff24b8fa09ccb64" kindref="member">DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1232" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a59b15d09cd00d0a16cd63a3cf6e491ea" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasRaytracing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports raytracing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a880e3c20caa009187ce288f0d7d02179" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1234" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a20d19ee00e65c23ff56bedb908a73c67" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasRaytracingT11</definition>
+        <argsstring></argsstring>
+        <name>hasRaytracingT11</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports extended raytracing features, like inline raytracing (aka RayQuery). <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracingT11</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1236" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a1ec6f0fa178e4712236680ce702e2b1e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the Nvidia driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1238" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1238" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a21a2c63ba00b04cb9500c3be4cf0f2c0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the AMD / ATI driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1240" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1240" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1acb9d3615d6b8de793f3454f38a38a80e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic per draw shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1242" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1242" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1afcc2882071815c274474048db1d3033f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shading rate textures as a source of shading rate information. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1244" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1244" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1af08f839d86251890d8a474e51cb39664" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shader generated shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1246" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1af2caba7a2fe474032ef698a9829c0da4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports combiners for variable rate shading to select the final shading rate. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1248" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1af272ee92fb814459bd521ffc1e9ccf85" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports variable rate shading blocks with sizes of 4 in X and Y direction. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1250" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1250" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ad0176c96dadca39cdce12b8a19b98b31" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports creation of aliased textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1253" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1253" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a3d2500d0819510beba750f63d1091253" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the resource heap API. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a43f7898db5a17c29a9acb8767d66353c" kindref="member">DeviceDriverCapabilitiesBase::hasResourceHeaps</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1256" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1256" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1aaf0ffc758181c251460a02d2cf526454" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports overlapping buffer copies. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1258" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1258" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a3ad7105cc2e9b9c6169553aed085eaa7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver uses region based copies when overlapping copies are executed. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1260" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1260" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a624e20d8a4b0eaaa03a24cd9caa03e31" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasUAVOnlyForcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnlyForcedSampleCount</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports forced multisample count without render targets and only outputting to UAVs. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d1ae04840c96746888e1c476d4544e4" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1262" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1262" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a2c792d76da9847f74a88841a48e81fa9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports 64 bit integers shader resource types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1264" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1264" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a5671cf25cf9f63de44df339482e6d895" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver is not emulating render sup-passes. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1266" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1266" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a4d8a1bd089d09a2322caf59608bbc549" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 2D textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1268" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1268" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a5d55c07f7372ca0e6d04edcf878a41cc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 3D textures;. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1270" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1270" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a56d0d5ab832b142e265132674b24db48" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports safe read and write access for not mapped tiles of tiled resources. Such reads return 0 and writes are ignored. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1272" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1272" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a1671234ce5aa2ab6aa89ce73a0ea2cee" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports memory aliasing of multiple tiles. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1274" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1274" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1afe18184be7a669e1d02ed758e4b5f66a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Nvidia DLSS. DLSS stand for Deep Learning Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1276" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1276" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1ace17370ede4fd32a9e08f0644af73e36" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Intel XESS. XESS stands for Xe Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1278" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1278" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a87dc9cc71e8f189f75806ab30fd46de3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports draw id in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1280" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1affd0a2e587a3ef4acec431008ba8bd90" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the mesh shader pipeline. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1282" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1282" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a36d40a50ad138742ee2a3e7c0af2354a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic view instancing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1284" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1284" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1af982618e08be81abbe664323e0ff9501" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has some optimizations for view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1286" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1286" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a54fd5923cece3fdb2c2ded977195bb1c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has hardware acceleration to natively support view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1288" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1288" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a171306bcddf2e594e79508e9617da393" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports stereo render expansion. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1290" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1290" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a2763066cef54e33cb08ee0ca00e579a7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver architecture is known to be a tile renderer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1292" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1292" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a9fc02948ac41bc8f00d06dbe01a54c6c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports lazily allocated memory. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1294" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1294" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a96dfe8065daeb2f3cf62e7d8ea11635d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support indirect calls. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1296" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1296" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_nintendo_switch_1a0bb3f72746267e9787ed603d6601b1f2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support comparison samplers. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1298" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1298" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for Nintendo Switch. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesNintendoSwitch</label>
+        <link refid="struct_device_driver_capabilities_nintendo_switch"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesNintendoSwitch</label>
+        <link refid="struct_device_driver_capabilities_nintendo_switch"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1191" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1192" bodyend="1299"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a54fd5923cece3fdb2c2ded977195bb1c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ad0176c96dadca39cdce12b8a19b98b31" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ae5eb51ca01c768b1f5be77fdca413fed" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1abcc856e93804e58d96163cdf41748cdb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ab8cc26637ffbc82fc4c4e1625949fb1a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1adb33dcb90a1cd5268baeb2cc2367f295" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a21a2c63ba00b04cb9500c3be4cf0f2c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a36d40a50ad138742ee2a3e7c0af2354a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1aaf0ffc758181c251460a02d2cf526454" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a3ad7105cc2e9b9c6169553aed085eaa7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a0bb3f72746267e9787ed603d6601b1f2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_base_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ada655a307e7bb62896a56677fa2e8d18" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1aa9dfc7b6b68fcb283d4b1e7d5bef0504" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ac4347b91422e4f7e2c6aee76cbf9a463" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a73f864712bc54068de226641de977f10" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1afe18184be7a669e1d02ed758e4b5f66a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a87dc9cc71e8f189f75806ab30fd46de3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1adb12c81491114e5999a9b5f8e86e8e8f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ae4c893ae7b4e71acafd07ed94b518e4a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a96dfe8065daeb2f3cf62e7d8ea11635d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ac90ccc26acdf89ba0dfc2ce3de6f5898" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a9fc02948ac41bc8f00d06dbe01a54c6c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1affd0a2e587a3ef4acec431008ba8bd90" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a5671cf25cf9f63de44df339482e6d895" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1aaebcc7654e15533de9bb41c9b4dbcd71" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a1ec6f0fa178e4712236680ce702e2b1e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a0502167afcb6d392dc731dc8708ca070" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1af982618e08be81abbe664323e0ff9501" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a7ed35e9baf5d98f15ed3171702d0e0cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a59b15d09cd00d0a16cd63a3cf6e491ea" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a20d19ee00e65c23ff56bedb908a73c67" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a673216799601394d35367fa281a63a46" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1aef8890f0804bd814fe0e5b1a188a1911" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a3d2500d0819510beba750f63d1091253" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a2c792d76da9847f74a88841a48e81fa9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a171306bcddf2e594e79508e9617da393" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a90ded95712876ee8e0fb7b48e49675de" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a2763066cef54e33cb08ee0ca00e579a7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a4d8a1bd089d09a2322caf59608bbc549" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a5d55c07f7372ca0e6d04edcf878a41cc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a1671234ce5aa2ab6aa89ce73a0ea2cee" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a56d0d5ab832b142e265132674b24db48" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a624e20d8a4b0eaaa03a24cd9caa03e31" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1acb9d3615d6b8de793f3454f38a38a80e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1af272ee92fb814459bd521ffc1e9ccf85" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1af2caba7a2fe474032ef698a9829c0da4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1af08f839d86251890d8a474e51cb39664" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1afcc2882071815c274474048db1d3033f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1a2597470b4348c3b012c8c36eeba8439b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1afed186bc030f9266afdbccbe2985b50a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_nintendo_switch_1ace17370ede4fd32a9e08f0644af73e36" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

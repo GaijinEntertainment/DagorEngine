@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_sbuffer_1_1_i_reload_data" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>Sbuffer::IReloadData</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_sbuffer_1_1_i_reload_data_1aecd663c2526f5e520d955a2d1f3a9814" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual Sbuffer::IReloadData::~IReloadData</definition>
+        <argsstring>()</argsstring>
+        <name>~IReloadData</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="92" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_sbuffer_1_1_i_reload_data_1a145726c0eb268dae987354f306393d44" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Sbuffer::IReloadData::reloadD3dRes</definition>
+        <argsstring>(Sbuffer *sb)=0</argsstring>
+        <name>reloadD3dRes</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>sb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="93" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_sbuffer_1_1_i_reload_data_1af3e0e88aa47556474857d194360d37fb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Sbuffer::IReloadData::destroySelf</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroySelf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="94" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="90" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="91" bodyend="95"/>
+    <listofallmembers>
+      <member refid="struct_sbuffer_1_1_i_reload_data_1af3e0e88aa47556474857d194360d37fb" prot="public" virt="pure-virtual"><scope>Sbuffer::IReloadData</scope><name>destroySelf</name></member>
+      <member refid="struct_sbuffer_1_1_i_reload_data_1a145726c0eb268dae987354f306393d44" prot="public" virt="pure-virtual"><scope>Sbuffer::IReloadData</scope><name>reloadD3dRes</name></member>
+      <member refid="struct_sbuffer_1_1_i_reload_data_1aecd663c2526f5e520d955a2d1f3a9814" prot="public" virt="virtual"><scope>Sbuffer::IReloadData</scope><name>~IReloadData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

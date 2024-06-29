@@ -1,0 +1,280 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_scarlett" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesScarlett</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_xbox_one" prot="public" virt="non-virtual">DeviceDriverCapabilitiesXboxOne</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1aaa2a7540c9d4edbf59f5ac4ed0c7c554" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports conservative rastering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a903377bb582a3da6b2b8c276d6cbc463" kindref="member">DeviceDriverCapabilitiesBase::hasConservativeRassterization</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="811" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="811" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1a76d0ddaff779d3ab258d7834a9b03597" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasRaytracing</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports raytracing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a880e3c20caa009187ce288f0d7d02179" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="813" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="813" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1a6865a7e1722b02092b8ba878a4cef239" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasRaytracingT11</definition>
+        <argsstring></argsstring>
+        <name>hasRaytracingT11</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports extended raytracing features, like inline raytracing (aka RayQuery). <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracingT11</ref> </para>
+</simplesect>
+<simplesect kind="warning"><para>Inline Raytracing is not directly supported, there is a software implementation available, see GDK documentation for details. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="817" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="817" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1ae8e87c494a0fc6e2db3b51d433a29a8a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic per draw shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="819" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="819" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1aeb8afa2589fe702ede0c4633f786f36f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shading rate textures as a source of shading rate information. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="821" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="821" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1a69eb622dfbb7b010b4c40aa6e230501d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shader generated shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="823" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="823" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1a9ee420f7a862b4e292d4804dec02e6bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports combiners for variable rate shading to select the final shading rate. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="825" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="825" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1a5f399008cc22f54ac31f03ae4e5e688a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports 64 bit integers shader resource types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref> </para>
+</simplesect>
+<simplesect kind="warning"><para>Documentation states that HLSL 6.6 64 bit atomics are not supported directly, but HLSL xbox extensions that offer 64 bit atomics are. So they may need different instructions to support the same operations. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="829" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="829" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_scarlett_1a55552df8733db2a9793bb5a511b2e5d9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesScarlett::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the mesh shader pipeline. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref> </para>
+</simplesect>
+<simplesect kind="warning"><para>Documentation is contradicting it self about proper support of indirect dispatch with pipelines that use amplification shaders. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="833" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="833" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for Xbox Series X / S. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Uses Xbox One optimized values and overrides only differences. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_xbox_one" kindref="compound">DeviceDriverCapabilitiesXboxOne</ref> </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesScarlett</label>
+        <link refid="struct_device_driver_capabilities_scarlett"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesXboxOne</label>
+        <link refid="struct_device_driver_capabilities_xbox_one"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesScarlett</label>
+        <link refid="struct_device_driver_capabilities_scarlett"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesXboxOne</label>
+        <link refid="struct_device_driver_capabilities_xbox_one"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="808" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="809" bodyend="834"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_xbox_one_1aa17d398209582c8d2dc5f00ecbe34406" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a40f5edf5157e9f8e9ed4ca585b77d3c2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a800ae5a85caa1b980b8432f73f88c41c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a9ce3dc6b5c6f7843121793181dec8d97" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a7e7fa9e8496bcba688ccaa658b3d0dbc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a8d0ce92d424a7ffebf1961a594675da7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1afae6fe55b9251c6d3dd48774586cfd6f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1ad45c7f0dd1a4260f2706107970f12380" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1ac5851a351917ea9f184f0076cb17b0e2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a3d5291006feb552b0617da270a295b7b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1ab7887ef093d6701ccc46f19717afff49" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1ab55d0fb7cdba1c0eb49a8962ae9844ae" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1abcc1e7bd7b5281ad01216d5d89df2ecd" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1aaa2a7540c9d4edbf59f5ac4ed0c7c554" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a552899220b81d14b8b4f236152e1621b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1ab1627e9e2fac0dc4441a77b1d904c4c1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1afcc1f61cc30550e509e1f1a4da5b3752" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1aafb6654db9496cf8b0a6f00c5a244182" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a099f2644eabfef183376c4ccce39683a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a39c40ea7dd7027c5f0a61c96396e105b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1af0030b226fd1c2e8e31d16bd554abb2d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1afb6caf5d0408dd04b5dc34be69f70060" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a48b7aaf419403d02e3e6b3b69dc3666b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a34dd6301b1c266eab1d77a1c4237280c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1a55552df8733db2a9793bb5a511b2e5d9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a80f147ccf9f6cd1277e615585b1eeed0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1af19ef5e0b525cf53b29bae505eaa2961" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a8bab442b4f8aa9dce130f1f4f0097488" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a9178ca3c562641ec23fd91953dfa45c8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a0fe109b3e9b52a769f1223c240b55167" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a7115ba02564a80d4fc579624f43cc6f5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1a76d0ddaff779d3ab258d7834a9b03597" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1a6865a7e1722b02092b8ba878a4cef239" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1ab34a85f89354d18ad9352c0726c7ac9f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a83d7470e920036436c83b8a48fd816b5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a3b60caa529b25f0ff4ad867dc24a97a7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a1dede033271d1fd7621bb2f7100961ae" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1a5f399008cc22f54ac31f03ae4e5e688a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1aabcaa244eb911bd3e2ad0c0eb80dc2ef" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a315460480b54d78c3621c2703964b266" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a9a002b084d20df93b445df1b51b1ea13" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1afe4ec335dab22528a7de442f2185b8f7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a1713d7ef06c03285a2a0ed60bc6ae58f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a59b60b89df9e95a87c4dac5c97abd39f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a082a59eca49d3d823883a0024d4e8cf6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a264d1ef090ee49d02c3cd1300759144b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1aa2ecee3c865ce60dc910f02d096f3d19" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1ae8e87c494a0fc6e2db3b51d433a29a8a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a6af3ec466d8af4fa958728584464776a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1a9ee420f7a862b4e292d4804dec02e6bb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1a69eb622dfbb7b010b4c40aa6e230501d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_scarlett_1aeb8afa2589fe702ede0c4633f786f36f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a6871773ade641bd56a2f49ed6888cc32" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a1dbe9faea3f23264539f54dd7a70afd1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_xbox_one_1a90d935461bcc62ab1ec08548705d9213" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesScarlett</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

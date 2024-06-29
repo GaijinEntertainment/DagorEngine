@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="bug" kind="page">
+    <compoundname>bug</compoundname>
+    <title>Bug List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref>  </term></varlistentry>
+<listitem><para><anchor id="bug_1_bug000001"/>Nintendo Switch is experimental support and so is not a constant cap yet.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1a5d1ae04840c96746888e1c476d4544e4" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</ref>  </term></varlistentry>
+<listitem><para><anchor id="bug_1_bug000002"/>There is no way of querying the number of samples that are supported. So the Vulkan driver, for example, assumes 1, 2, 4 and 8 samples to be required. </para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="bug"/>
+  </compounddef>
+</doxygen>

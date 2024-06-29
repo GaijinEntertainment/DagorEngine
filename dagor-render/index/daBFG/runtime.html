@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatching Work in Nodes at Runtime &mdash; Dagor documentation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/design-tabs.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="DaScript module" href="das.html" />
+    <link rel="prev" title="Controlling the Graph State" href="graphState.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Dagor documentation
+            <img src="../../../_static/gaijin.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../daBFG.html">daBFG API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="core.html">Core Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="declaringNodes.html">Declaring a Node</a></li>
+<li class="toctree-l3"><a class="reference internal" href="graphState.html">Controlling the Graph State</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="das.html">DaScript module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../helperClasses.html">Helper classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resourceSlot.html">Resource slots</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quirrel-modules/index.html">Quirrel Modules Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../qdox-user-guide/index.html">Qdox User Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daBFG.html">daBFG API</a></li>
+      <li class="breadcrumb-item active">Dispatching Work in Nodes at Runtime</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-render/index/daBFG/runtime.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dispatching-work-in-nodes-at-runtime">
+<h1>Dispatching Work in Nodes at Runtime<a class="headerlink" href="#dispatching-work-in-nodes-at-runtime" title="Permalink to this heading"></a></h1>
+<p>The general aim of the daBfg API is to do as much boiler-plate stuff for you as possible.
+It can automatically manage resources, bind them to shader vars, etc.
+However, when porting legacy code to daBfg, it is often necessary to do some of the work yourself by getting direct access to FG-managed textures and buffers.
+When working with CPU blobs, getting the data from inside them is often the primary concern.
+To facilitate this, it is possible to extract a handle to a resource inside the declaration callback using the <code class="xref py py-func docutils literal notranslate"><span class="pre">dabfg::VirtualResourceRequest::handle()</span></code> method.
+This handle should then be captured inside the execution callback and dereferenced to get access to the ManagedResView encapsulating a physical GPU resource and it’s D3DRESID (acquired by registering it within the engine resource manager).</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dabfg</span><span class="o">::</span><span class="n">register_node</span><span class="p">(</span><span class="s">&quot;node_name&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">DABFG_PP_NODE_SRC</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[](</span><span class="n">dabfg</span><span class="o">::</span><span class="n">Registry</span><span class="w"> </span><span class="n">registry</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">texHndl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">registry</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;my_tex&quot;</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">texture</span><span class="p">()</span>
+<span class="w">      </span><span class="p">.</span><span class="n">atStage</span><span class="p">(</span><span class="n">dabfg</span><span class="o">::</span><span class="n">Stage</span><span class="o">::</span><span class="n">PS</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">useAs</span><span class="p">(</span><span class="n">dabfg</span><span class="o">::</span><span class="n">Usage</span><span class="o">::</span><span class="n">SHADER_RESOURCE</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="n">handle</span><span class="p">();</span><span class="w"> </span><span class="c1">// Is only callable after the stage/usage were specified</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="n">texHndl</span><span class="p">]()</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">legacy_code</span><span class="p">(</span><span class="n">texHndl</span><span class="p">.</span><span class="n">view</span><span class="p">());</span>
+<span class="w">      </span><span class="p">};</span>
+<span class="w">  </span><span class="p">});</span>
+</pre></div>
+</div>
+<p>Below is the full documentation of the VirtualResourceHandle class.</p>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0_b_bEN5dabfg21VirtualResourceHandleE">
+<span id="_CPPv3I0_b_bEN5dabfg21VirtualResourceHandleE"></span><span id="_CPPv2I0_b_bEN5dabfg21VirtualResourceHandleE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Res</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpu</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optional</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdabfg_1_1_virtual_resource_handle"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VirtualResourceHandle</span></span></span><a class="headerlink" href="#_CPPv4I0_b_bEN5dabfg21VirtualResourceHandleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Handle to a virtual resource managed by BFG. Does not actually represent a physical GPU or CPU resource until the execution callback gets called. The physical resource will also change between calls to the execution callback, so the dereferenced value of this handle should NEVER be cached anywhere. </p>
+<p>All methods are const &amp; as this is supposed to be called from within the node execution callback. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Res</strong> – BaseTexture or Sbuffer when <code class="docutils literal notranslate"><span class="pre">gpu</span></code> == true, otherwise arbitrary CPU data type. </p></li>
+<li><p><strong>gpu</strong> – True iff this handle represents a GPU resource. </p></li>
+<li><p><strong>optional</strong> – True iff this handle can refer to a missing resource. </p></li>
+</ul>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5dabfg21VirtualResourceHandle3refEv">
+<span id="_CPPv3NKR5dabfg21VirtualResourceHandle3refEv"></span><span id="_CPPv2NKR5dabfg21VirtualResourceHandle3refEv"></span><span id="dabfg::VirtualResourceHandle::refCR"></span><span class="target" id="classdabfg_1_1_virtual_resource_handle_1af572df7b3d6b663acbbd533cc380da7c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_b_bEN5dabfg21VirtualResourceHandleE" title="dabfg::VirtualResourceHandle::Res"><span class="n"><span class="pre">Res</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">ref</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5dabfg21VirtualResourceHandle3refEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a reference to the provided resource. Only defined for mandatory handles. </p>
+<p>For read requests, this always returns a const reference. Due to unfortunate coupling of textures with samplers, sometimes this constness needs to be violated. Use <code class="docutils literal notranslate"><span class="pre">.</span><a class="reference internal" href="#classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b"><span class="std std-ref"><span class="pre">view()</span></span></a></code> for that.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A non-nullable reference to the resource. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5dabfg21VirtualResourceHandle3getEv">
+<span id="_CPPv3NKR5dabfg21VirtualResourceHandle3getEv"></span><span id="_CPPv2NKR5dabfg21VirtualResourceHandle3getEv"></span><span id="dabfg::VirtualResourceHandle::getCR"></span><span class="target" id="classdabfg_1_1_virtual_resource_handle_1ac2798193d43e5a92040ae99e2cc219bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_b_bEN5dabfg21VirtualResourceHandleE" title="dabfg::VirtualResourceHandle::Res"><span class="n"><span class="pre">Res</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5dabfg21VirtualResourceHandle3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to the provided resource, or nullptr for missing optional resources. Always check for null when using this! </p>
+<p>For read requests, this always returns a const reference. Due to unfortunate coupling of textures with samplers, sometimes this constness needs to be violated. Use <code class="docutils literal notranslate"><span class="pre">.</span><a class="reference internal" href="#classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b"><span class="std std-ref"><span class="pre">view()</span></span></a></code> for that.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A pointer to the resource that may be nullptr for optional requests. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5dabfg21VirtualResourceHandle4viewEv">
+<span id="_CPPv3NKR5dabfg21VirtualResourceHandle4viewEv"></span><span id="_CPPv2NKR5dabfg21VirtualResourceHandle4viewEv"></span><span id="dabfg::VirtualResourceHandle::viewCR"></span><span class="target" id="classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">View</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">view</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5dabfg21VirtualResourceHandle4viewEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a managed view to a provided GPU resource, or an empty view for missing optional resources. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A ManagedResView to the GPU resource that may be empty for optional requests. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5dabfg21VirtualResourceHandle8d3dResIdEv">
+<span id="_CPPv3NKR5dabfg21VirtualResourceHandle8d3dResIdEv"></span><span id="_CPPv2NKR5dabfg21VirtualResourceHandle8d3dResIdEv"></span><span id="dabfg::VirtualResourceHandle::d3dResIdCR"></span><span class="target" id="classdabfg_1_1_virtual_resource_handle_1a15ce79575f77ea40923f807efbc83dfb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">D3DRESID</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3dResId</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5dabfg21VirtualResourceHandle8d3dResIdEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the engine resource manager ID for a provided GPU resource, or a BAD_RESID for a missing optional resource. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A D3DRESID to the GPU resource that may be BAD_RESID for optional requests. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="graphState.html" class="btn btn-neutral float-left" title="Controlling the Graph State" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="das.html" class="btn btn-neutral float-right" title="DaScript module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Jun 29, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

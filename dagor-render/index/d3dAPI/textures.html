@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Textures &mdash; Dagor documentation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" type="text/css" />
+    <link rel="shortcut icon" href="../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/design-tabs.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Helper classes for D3D API" href="helperClasses.html" />
+    <link rel="prev" title="Constants, Structures and Enumerations" href="constants.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Dagor documentation
+            <img src="../../../_static/gaijin.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="RenderPass.html">RenderPass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="other.html">All other methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Textures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="helperClasses.html">Helper classes for D3D API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../daBFG.html">daBFG API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../helperClasses.html">Helper classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resourceSlot.html">Resource slots</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quirrel-modules/index.html">Quirrel Modules Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../qdox-user-guide/index.html">Qdox User Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Textures</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-render/index/d3dAPI/textures.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="textures">
+<h1>Textures<a class="headerlink" href="#textures" title="Permalink to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv47Texture">
+<span id="_CPPv37Texture"></span><span id="_CPPv27Texture"></span><span id="Texture"></span><span class="target" id="dag__tex3d_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Texture</span></span></span><a class="headerlink" href="#_CPPv47Texture" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv411CubeTexture">
+<span id="_CPPv311CubeTexture"></span><span id="_CPPv211CubeTexture"></span><span id="CubeTexture"></span><span class="target" id="dag__tex3d_8h_1a0f1991b83270f80fdb5975f615cc8f98"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CubeTexture</span></span></span><a class="headerlink" href="#_CPPv411CubeTexture" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv410VolTexture">
+<span id="_CPPv310VolTexture"></span><span id="_CPPv210VolTexture"></span><span id="VolTexture"></span><span class="target" id="dag__tex3d_8h_1a7822f867ab7b3377816832b781b76930"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VolTexture</span></span></span><a class="headerlink" href="#_CPPv410VolTexture" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv412ArrayTexture">
+<span id="_CPPv312ArrayTexture"></span><span id="_CPPv212ArrayTexture"></span><span id="ArrayTexture"></span><span class="target" id="dag__tex3d_8h_1af17a5ffc9ee505603d91f627188e8dc7"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ArrayTexture</span></span></span><a class="headerlink" href="#_CPPv412ArrayTexture" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv412ChannelDType">
+<span id="_CPPv312ChannelDType"></span><span id="_CPPv212ChannelDType"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ChannelDType</span></span></span><a class="headerlink" href="#_CPPv412ChannelDType" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType4NONEE">
+<span id="_CPPv3N12ChannelDType4NONEE"></span><span id="_CPPv2N12ChannelDType4NONEE"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType5UNORME">
+<span id="_CPPv3N12ChannelDType5UNORME"></span><span id="_CPPv2N12ChannelDType5UNORME"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a5bb95a4e899b4551b04a48066588d0e5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNORM</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType5UNORME" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType5SNORME">
+<span id="_CPPv3N12ChannelDType5SNORME"></span><span id="_CPPv2N12ChannelDType5SNORME"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a7c1aa912d80cc40ecfa14a37bc458843"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SNORM</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType5SNORME" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType6UFLOATE">
+<span id="_CPPv3N12ChannelDType6UFLOATE"></span><span id="_CPPv2N12ChannelDType6UFLOATE"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499ae6ac805b2322b9c60967a971fd35167a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UFLOAT</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType6UFLOATE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType6SFLOATE">
+<span id="_CPPv3N12ChannelDType6SFLOATE"></span><span id="_CPPv2N12ChannelDType6SFLOATE"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a5a58e5d5f599c38d470fdac5da9622b5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SFLOAT</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType6SFLOATE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType4UINTE">
+<span id="_CPPv3N12ChannelDType4UINTE"></span><span id="_CPPv2N12ChannelDType4UINTE"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a3351504090a741e69da641a42e00da80"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UINT</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType4UINTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12ChannelDType4SINTE">
+<span id="_CPPv3N12ChannelDType4SINTE"></span><span id="_CPPv2N12ChannelDType4SINTE"></span><span class="target" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a0d6b471a91d4d6f751adbee558004f1f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SINT</span></span></span><a class="headerlink" href="#_CPPv4N12ChannelDType4SINTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4Ut2_35">
+<span id="_CPPv3Ut2_35"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">[anonymous]</span></span></span><a class="headerlink" href="#_CPPv4Ut2_35" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3515TEXLOCK_DISCARDE">
+<span id="_CPPv3NUt2_3515TEXLOCK_DISCARDE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53ab97d145a655b3786d211ad15fd0a6633"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_DISCARD</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3515TEXLOCK_DISCARDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3515TEXLOCK_RAWDATAE">
+<span id="_CPPv3NUt2_3515TEXLOCK_RAWDATAE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a7024b98eddf689371804e435510ff1ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_RAWDATA</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3515TEXLOCK_RAWDATAE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3523TEXLOCK_NO_DIRTY_UPDATEE">
+<span id="_CPPv3NUt2_3523TEXLOCK_NO_DIRTY_UPDATEE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a1b5db12765ee2f4ef33b774eef5a7204"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_NO_DIRTY_UPDATE</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3523TEXLOCK_NO_DIRTY_UPDATEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3517TEXLOCK_NOSYSLOCKE">
+<span id="_CPPv3NUt2_3517TEXLOCK_NOSYSLOCKE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53aaaccf67fe218c8497cd7e166502d6092"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_NOSYSLOCK</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3517TEXLOCK_NOSYSLOCKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3512TEXLOCK_READE">
+<span id="_CPPv3NUt2_3512TEXLOCK_READE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53ae88cc87bd874de16ef5d7b64d8e5b30c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_READ</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3512TEXLOCK_READE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3513TEXLOCK_WRITEE">
+<span id="_CPPv3NUt2_3513TEXLOCK_WRITEE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a94a47abff739eb51ef0efd666671c9f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_WRITE</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3513TEXLOCK_WRITEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3517TEXLOCK_READWRITEE">
+<span id="_CPPv3NUt2_3517TEXLOCK_READWRITEE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a0bd1c21b1e99983a991945e8c7a119ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_READWRITE</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3517TEXLOCK_READWRITEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3514TEXLOCK_RWMASKE">
+<span id="_CPPv3NUt2_3514TEXLOCK_RWMASKE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a8c8d750a5a6a7caed7316a915612b7bd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_RWMASK</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3514TEXLOCK_RWMASKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3519TEXLOCK_NOOVERWRITEE">
+<span id="_CPPv3NUt2_3519TEXLOCK_NOOVERWRITEE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53ad0bea102ba54e765a24097673219020a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_NOOVERWRITE</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3519TEXLOCK_NOOVERWRITEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3521TEXLOCK_DELSYSMEMCOPYE">
+<span id="_CPPv3NUt2_3521TEXLOCK_DELSYSMEMCOPYE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53ade76e6e5e7af76c460f2e67ed53354ab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_DELSYSMEMCOPY</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3521TEXLOCK_DELSYSMEMCOPYE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3518TEXLOCK_SYSTEXLOCKE">
+<span id="_CPPv3NUt2_3518TEXLOCK_SYSTEXLOCKE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a072d6f7b5a381f764c7f57d618d702aa"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_SYSTEXLOCK</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3518TEXLOCK_SYSTEXLOCKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3524TEXLOCK_UPDATEFROMSYSTEXE">
+<span id="_CPPv3NUt2_3524TEXLOCK_UPDATEFROMSYSTEXE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a456f478daeb1dc29cfeddf187c21d773"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_UPDATEFROMSYSTEX</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3524TEXLOCK_UPDATEFROMSYSTEXE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3533TEXLOCK_DONOTUPDATEON9EXBYDEFAULTE">
+<span id="_CPPv3NUt2_3533TEXLOCK_DONOTUPDATEON9EXBYDEFAULTE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a9fa202b6bbdf5e892cad0a91cf989d40"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_DONOTUPDATEON9EXBYDEFAULT</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3533TEXLOCK_DONOTUPDATEON9EXBYDEFAULTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3520TEXLOCK_COPY_STAGINGE">
+<span id="_CPPv3NUt2_3520TEXLOCK_COPY_STAGINGE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a37e225c5dcdf8d99df8d234d74309246"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_COPY_STAGING</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3520TEXLOCK_COPY_STAGINGE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3515TEXLOCK_DEFAULTE">
+<span id="_CPPv3NUt2_3515TEXLOCK_DEFAULTE"></span><span class="target" id="dag__tex3d_8h_1ab48899087cc647f0f791ed0c459adc53a6d7809c41d9f725ab075c234f2012591"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLOCK_DEFAULT</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3515TEXLOCK_DEFAULTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4Ut2_36">
+<span id="_CPPv3Ut2_36"></span><span class="target" id="dag__tex3d_8h_1a458e651af6690959efa2afb96be7d609"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">[anonymous]</span></span></span><a class="headerlink" href="#_CPPv4Ut2_36" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3617TEXLF_CALCMIPMAPSE">
+<span id="_CPPv3NUt2_3617TEXLF_CALCMIPMAPSE"></span><span class="target" id="dag__tex3d_8h_1a458e651af6690959efa2afb96be7d609ab2ffff905344ae22cbab73adbf4d0e89"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXLF_CALCMIPMAPS</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3617TEXLF_CALCMIPMAPSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4Ut2_37">
+<span id="_CPPv3Ut2_37"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">[anonymous]</span></span></span><a class="headerlink" href="#_CPPv4Ut2_37" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3713CUBEFACE_POSXE">
+<span id="_CPPv3NUt2_3713CUBEFACE_POSXE"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a17b84d8078b80e072c3a06d791b47e8d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CUBEFACE_POSX</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3713CUBEFACE_POSXE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3713CUBEFACE_NEGXE">
+<span id="_CPPv3NUt2_3713CUBEFACE_NEGXE"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562abfa657b61a7bc567a7c3161dc6c03c10"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CUBEFACE_NEGX</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3713CUBEFACE_NEGXE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3713CUBEFACE_POSYE">
+<span id="_CPPv3NUt2_3713CUBEFACE_POSYE"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562af353500273815468c309846677c3b95f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CUBEFACE_POSY</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3713CUBEFACE_POSYE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3713CUBEFACE_NEGYE">
+<span id="_CPPv3NUt2_3713CUBEFACE_NEGYE"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a0cace3d2d3c1613819a34239fbc3a03c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CUBEFACE_NEGY</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3713CUBEFACE_NEGYE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3713CUBEFACE_POSZE">
+<span id="_CPPv3NUt2_3713CUBEFACE_POSZE"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a53d3b6f3224e33cb407137bf3cf94f0b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CUBEFACE_POSZ</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3713CUBEFACE_POSZE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4NUt2_3713CUBEFACE_NEGZE">
+<span id="_CPPv3NUt2_3713CUBEFACE_NEGZE"></span><span class="target" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a4b331ccadfa16883c655d4cff60c6c8b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CUBEFACE_NEGZ</span></span></span><a class="headerlink" href="#_CPPv4NUt2_3713CUBEFACE_NEGZE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="dag__tex3d_8h_1ac838909fe5999ce8149ef1dc17a6a315"></span><span class="sig-name descname"><span class="pre">bool</span> <span class="pre">__forceinline</span> <span class="pre">is_alpha_texformat</span> <span class="pre">(unsigned</span> <span class="pre">flags)</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="dag__tex3d_8h_1aa669c8d7ebeecbac13e77d74ce6918bd"></span><span class="sig-name descname"><span class="pre">bool</span> <span class="pre">__forceinline</span> <span class="pre">is_bc_texformat</span> <span class="pre">(unsigned</span> <span class="pre">flags)</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421auto_mip_levels_count8uint32_t8uint32_t8uint32_t">
+<span id="_CPPv321auto_mip_levels_count8uint32_t8uint32_t8uint32_t"></span><span id="_CPPv221auto_mip_levels_count8uint32_t8uint32_t8uint32_t"></span><span id="auto_mip_levels_count__uint32_t.uint32_t.uint32_t"></span><span class="target" id="dag__tex3d_8h_1a36e9ea989dd01bd26fc51e9426e38453"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_mip_levels_count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421auto_mip_levels_count8uint32_t8uint32_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv415assert_tex_sizeP7Textureii">
+<span id="_CPPv315assert_tex_sizeP7Textureii"></span><span id="_CPPv215assert_tex_sizeP7Textureii"></span><span id="assert_tex_size__TextureP.i.i"></span><span class="target" id="dag__tex3d_8h_1a85856bf6bf6f365385ef396110ccc0bb"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">assert_tex_size</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv47Texture" title="Texture"><span class="n"><span class="pre">Texture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv415assert_tex_sizeP7Textureii" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419apply_gen_tex_propsP11BaseTextureRK15TextureMetaDatab">
+<span id="_CPPv319apply_gen_tex_propsP11BaseTextureRK15TextureMetaDatab"></span><span id="_CPPv219apply_gen_tex_propsP11BaseTextureRK15TextureMetaDatab"></span><span id="apply_gen_tex_props__BaseTextureP.TextureMetaDataCR.b"></span><span class="target" id="dag__tex3d_8h_1a4b4dc07fac9c5ae6f0886f4abbcdfbad"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">apply_gen_tex_props</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="n"><span class="pre">TextureMetaData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tmd</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">force_addr_from_tmd</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419apply_gen_tex_propsP11BaseTextureRK15TextureMetaDatab" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416parse_tex_formatPKc8uint32_t">
+<span id="_CPPv316parse_tex_formatPKc8uint32_t"></span><span id="_CPPv216parse_tex_formatPKc8uint32_t"></span><span id="parse_tex_format__cCP.uint32_t"></span><span class="target" id="dag__tex3d_8h_1ad34b1b5958851e12b8ef6989ffb5b675"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">parse_tex_format</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">default_fmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416parse_tex_formatPKc8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419get_tex_format_desc8uint32_t">
+<span id="_CPPv319get_tex_format_desc8uint32_t"></span><span id="_CPPv219get_tex_format_desc8uint32_t"></span><span id="get_tex_format_desc__uint32_t"></span><span class="target" id="dag__tex3d_8h_1ad85c8be2e87347bf89759fde950dfd82"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv417TextureFormatDesc" title="TextureFormatDesc"><span class="n"><span class="pre">TextureFormatDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_tex_format_desc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419get_tex_format_desc8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419get_tex_format_name8uint32_t">
+<span id="_CPPv319get_tex_format_name8uint32_t"></span><span id="_CPPv219get_tex_format_name8uint32_t"></span><span id="get_tex_format_name__uint32_t"></span><span class="target" id="dag__tex3d_8h_1a870f5add085698abceb6689675463079"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_tex_format_name</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419get_tex_format_name8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421get_tex_channel_valuePKvRK24TextureChannelFormatDesc">
+<span id="_CPPv321get_tex_channel_valuePKvRK24TextureChannelFormatDesc"></span><span id="_CPPv221get_tex_channel_valuePKvRK24TextureChannelFormatDesc"></span><span id="get_tex_channel_value__voidCP.TextureChannelFormatDescCR"></span><span class="target" id="dag__tex3d_8h_1ae0a9184b31faf7f38391040c28035077"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_tex_channel_value</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">pixel</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421get_tex_channel_valuePKvRK24TextureChannelFormatDesc" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421channel_bits_to_float8uint32_t12ChannelDTypeRK24TextureChannelFormatDesc">
+<span id="_CPPv321channel_bits_to_float8uint32_t12ChannelDTypeRK24TextureChannelFormatDesc"></span><span id="_CPPv221channel_bits_to_float8uint32_t12ChannelDTypeRK24TextureChannelFormatDesc"></span><span id="channel_bits_to_float__uint32_t.ChannelDType.TextureChannelFormatDescCR"></span><span class="target" id="dag__tex3d_8h_1a5e07a7655206640c9c3a9e9483d5b45d"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channel_bits_to_float</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bits</span></span>, <a class="reference internal" href="#_CPPv412ChannelDType" title="ChannelDType"><span class="n"><span class="pre">ChannelDType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421channel_bits_to_float8uint32_t12ChannelDTypeRK24TextureChannelFormatDesc" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-variables">Variables</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv426d3d_load_ddsx_tex_contents">
+<span id="_CPPv326d3d_load_ddsx_tex_contents"></span><span id="_CPPv226d3d_load_ddsx_tex_contents"></span><span class="target" id="dag__tex3d_8h_1aa01f1c6558a825735dadb0f1d986d737"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">d3d_load_ddsx_tex_contents</span></span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">tex</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">TEXTUREID</span></span><span class="w"> </span><span class="n"><span class="pre">tid</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">TEXTUREID</span></span><span class="w"> </span><span class="n"><span class="pre">paired_tid</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="other.html#_CPPv44ddsx" title="ddsx"><span class="n"><span class="pre">ddsx</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Header</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">hdr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">IGenLoad</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">crd</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">q_id</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">start_lev</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n"><span class="pre">tex_ld_lev</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv426d3d_load_ddsx_tex_contents" title="Permalink to this definition"></a><br /></dt>
+<dd><p>load texture content from DDSx stream using DDSx header for previously allocated texture </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv422d3d_load_ddsx_to_slice">
+<span id="_CPPv322d3d_load_ddsx_to_slice"></span><span id="_CPPv222d3d_load_ddsx_to_slice"></span><span class="target" id="dag__tex3d_8h_1a78d326d671b02ab9779580aa2f54162a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">d3d_load_ddsx_to_slice</span></span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">tex</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">slice</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="other.html#_CPPv44ddsx" title="ddsx"><span class="n"><span class="pre">ddsx</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Header</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">hdr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">IGenLoad</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">crd</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">q_id</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">start_lev</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n"><span class="pre">tex_ld_lev</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv422d3d_load_ddsx_to_slice" title="Permalink to this definition"></a><br /></dt>
+<dd><p>load texture content from DDSx stream using DDSx header to specified slice of previously allocated array texture </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv424TextureChannelFormatDesc">
+<span id="_CPPv324TextureChannelFormatDesc"></span><span id="_CPPv224TextureChannelFormatDesc"></span><span id="TextureChannelFormatDesc"></span><span class="target" id="struct_texture_channel_format_desc"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></span><a class="headerlink" href="#_CPPv424TextureChannelFormatDesc" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24TextureChannelFormatDesc4bitsE">
+<span id="_CPPv3N24TextureChannelFormatDesc4bitsE"></span><span id="_CPPv2N24TextureChannelFormatDesc4bitsE"></span><span id="TextureChannelFormatDesc::bits__int8_t"></span><span class="target" id="struct_texture_channel_format_desc_1adb5b2dfde890739ebbf29ab12567b490"></span><span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bits</span></span></span><a class="headerlink" href="#_CPPv4N24TextureChannelFormatDesc4bitsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24TextureChannelFormatDesc6offsetE">
+<span id="_CPPv3N24TextureChannelFormatDesc6offsetE"></span><span id="_CPPv2N24TextureChannelFormatDesc6offsetE"></span><span id="TextureChannelFormatDesc::offset__int8_t"></span><span class="target" id="struct_texture_channel_format_desc_1ad29f3d0ec6834e8ddf2adec12ff9d567"></span><span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">offset</span></span></span><a class="headerlink" href="#_CPPv4N24TextureChannelFormatDesc6offsetE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24TextureChannelFormatDesc12isFloatPointE">
+<span id="_CPPv3N24TextureChannelFormatDesc12isFloatPointE"></span><span id="_CPPv2N24TextureChannelFormatDesc12isFloatPointE"></span><span id="TextureChannelFormatDesc::isFloatPoint__b"></span><span class="target" id="struct_texture_channel_format_desc_1a67a359ea16b5d05d3c8fdfd1e1380652"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isFloatPoint</span></span></span><a class="headerlink" href="#_CPPv4N24TextureChannelFormatDesc12isFloatPointE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24TextureChannelFormatDesc8isSignedE">
+<span id="_CPPv3N24TextureChannelFormatDesc8isSignedE"></span><span id="_CPPv2N24TextureChannelFormatDesc8isSignedE"></span><span id="TextureChannelFormatDesc::isSigned__b"></span><span class="target" id="struct_texture_channel_format_desc_1a748a849b6d0ca8d2bd9683d6a2f4fd9e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isSigned</span></span></span><a class="headerlink" href="#_CPPv4N24TextureChannelFormatDesc8isSignedE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24TextureChannelFormatDesc12isNormalizedE">
+<span id="_CPPv3N24TextureChannelFormatDesc12isNormalizedE"></span><span id="_CPPv2N24TextureChannelFormatDesc12isNormalizedE"></span><span id="TextureChannelFormatDesc::isNormalized__b"></span><span class="target" id="struct_texture_channel_format_desc_1a7f047f5fd88fd62f22b95a2b932fb20c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isNormalized</span></span></span><a class="headerlink" href="#_CPPv4N24TextureChannelFormatDesc12isNormalizedE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv417TextureFormatDesc">
+<span id="_CPPv317TextureFormatDesc"></span><span id="_CPPv217TextureFormatDesc"></span><span id="TextureFormatDesc"></span><span class="target" id="struct_texture_format_desc"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TextureFormatDesc</span></span></span><a class="headerlink" href="#_CPPv417TextureFormatDesc" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK17TextureFormatDesc8hasAlphaEv">
+<span id="_CPPv3NK17TextureFormatDesc8hasAlphaEv"></span><span id="_CPPv2NK17TextureFormatDesc8hasAlphaEv"></span><span id="TextureFormatDesc::hasAlphaC"></span><span class="target" id="struct_texture_format_desc_1aaa802dc5b805e17d18acd0ace7e5f1ad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasAlpha</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK17TextureFormatDesc8hasAlphaEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK17TextureFormatDesc7isDepthEv">
+<span id="_CPPv3NK17TextureFormatDesc7isDepthEv"></span><span id="_CPPv2NK17TextureFormatDesc7isDepthEv"></span><span id="TextureFormatDesc::isDepthC"></span><span class="target" id="struct_texture_format_desc_1a16ff7deb1a12fb37a232acfd6121ba57"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isDepth</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK17TextureFormatDesc7isDepthEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK17TextureFormatDesc17rgbaChannelsCountEv">
+<span id="_CPPv3NK17TextureFormatDesc17rgbaChannelsCountEv"></span><span id="_CPPv2NK17TextureFormatDesc17rgbaChannelsCountEv"></span><span id="TextureFormatDesc::rgbaChannelsCountC"></span><span class="target" id="struct_texture_format_desc_1a03f9dd4504c357872a07b6851273bac1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rgbaChannelsCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK17TextureFormatDesc17rgbaChannelsCountEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK17TextureFormatDesc13channelsCountEv">
+<span id="_CPPv3NK17TextureFormatDesc13channelsCountEv"></span><span id="_CPPv2NK17TextureFormatDesc13channelsCountEv"></span><span id="TextureFormatDesc::channelsCountC"></span><span class="target" id="struct_texture_format_desc_1af1d8bfc5eb4d53bed8cd09d7fc801bdc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channelsCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK17TextureFormatDesc13channelsCountEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc18dagorTextureFormatE">
+<span id="_CPPv3N17TextureFormatDesc18dagorTextureFormatE"></span><span id="_CPPv2N17TextureFormatDesc18dagorTextureFormatE"></span><span id="TextureFormatDesc::dagorTextureFormat__uint32_t"></span><span class="target" id="struct_texture_format_desc_1a5d21c88d12a83e19409dc27db796caf6"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dagorTextureFormat</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc18dagorTextureFormatE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc15bytesPerElementE">
+<span id="_CPPv3N17TextureFormatDesc15bytesPerElementE"></span><span id="_CPPv2N17TextureFormatDesc15bytesPerElementE"></span><span id="TextureFormatDesc::bytesPerElement__uint16_t"></span><span class="target" id="struct_texture_format_desc_1a85f5a24286ba727e0a92814cefacd06e"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bytesPerElement</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc15bytesPerElementE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc13isBlockFormatE">
+<span id="_CPPv3N17TextureFormatDesc13isBlockFormatE"></span><span id="_CPPv2N17TextureFormatDesc13isBlockFormatE"></span><span id="TextureFormatDesc::isBlockFormat__b"></span><span class="target" id="struct_texture_format_desc_1a8c4a9607f19c84b8a66e460d0fb455fa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isBlockFormat</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc13isBlockFormatE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc12elementWidthE">
+<span id="_CPPv3N17TextureFormatDesc12elementWidthE"></span><span id="_CPPv2N17TextureFormatDesc12elementWidthE"></span><span id="TextureFormatDesc::elementWidth__uint8_t"></span><span class="target" id="struct_texture_format_desc_1a427f3d4efddc38a1f1ed393f4d79717e"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">elementWidth</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc12elementWidthE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc13elementHeightE">
+<span id="_CPPv3N17TextureFormatDesc13elementHeightE"></span><span id="_CPPv2N17TextureFormatDesc13elementHeightE"></span><span id="TextureFormatDesc::elementHeight__uint8_t"></span><span class="target" id="struct_texture_format_desc_1a1e2917378a87cbba7eb58d743ba075c9"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">elementHeight</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc13elementHeightE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc16mainChannelsTypeE">
+<span id="_CPPv3N17TextureFormatDesc16mainChannelsTypeE"></span><span id="_CPPv2N17TextureFormatDesc16mainChannelsTypeE"></span><span id="TextureFormatDesc::mainChannelsType__ChannelDType"></span><span class="target" id="struct_texture_format_desc_1ad7ef4d102ed9a33d12d5148e3c09d77f"></span><a class="reference internal" href="#_CPPv412ChannelDType" title="ChannelDType"><span class="n"><span class="pre">ChannelDType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mainChannelsType</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc16mainChannelsTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc18stencilChannelTypeE">
+<span id="_CPPv3N17TextureFormatDesc18stencilChannelTypeE"></span><span id="_CPPv2N17TextureFormatDesc18stencilChannelTypeE"></span><span id="TextureFormatDesc::stencilChannelType__ChannelDType"></span><span class="target" id="struct_texture_format_desc_1a317630cc2b033af552e9fe3ba1a632b0"></span><a class="reference internal" href="#_CPPv412ChannelDType" title="ChannelDType"><span class="n"><span class="pre">ChannelDType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stencilChannelType</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc18stencilChannelTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc1rE">
+<span id="_CPPv3N17TextureFormatDesc1rE"></span><span id="_CPPv2N17TextureFormatDesc1rE"></span><span id="TextureFormatDesc::r__TextureChannelFormatDesc"></span><span class="target" id="struct_texture_format_desc_1a9d536f7dcdbb6070aaf88e27df9239f8"></span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">r</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc1rE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc1gE">
+<span id="_CPPv3N17TextureFormatDesc1gE"></span><span id="_CPPv2N17TextureFormatDesc1gE"></span><span id="TextureFormatDesc::g__TextureChannelFormatDesc"></span><span class="target" id="struct_texture_format_desc_1a333da44ab0fcc842ed8de4b1f19ff87f"></span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">g</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc1gE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc1bE">
+<span id="_CPPv3N17TextureFormatDesc1bE"></span><span id="_CPPv2N17TextureFormatDesc1bE"></span><span id="TextureFormatDesc::b__TextureChannelFormatDesc"></span><span class="target" id="struct_texture_format_desc_1ab35b54e2f84b0d1ad0002be25decc871"></span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">b</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc1bE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc1aE">
+<span id="_CPPv3N17TextureFormatDesc1aE"></span><span id="_CPPv2N17TextureFormatDesc1aE"></span><span id="TextureFormatDesc::a__TextureChannelFormatDesc"></span><span class="target" id="struct_texture_format_desc_1a2279d6548d8b2986045a69870b43c1d9"></span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">a</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc1aE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc5depthE">
+<span id="_CPPv3N17TextureFormatDesc5depthE"></span><span id="_CPPv2N17TextureFormatDesc5depthE"></span><span id="TextureFormatDesc::depth__TextureChannelFormatDesc"></span><span class="target" id="struct_texture_format_desc_1a3242a8d4196b9e1e0c4468243e63f50d"></span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depth</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc5depthE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N17TextureFormatDesc7stencilE">
+<span id="_CPPv3N17TextureFormatDesc7stencilE"></span><span id="_CPPv2N17TextureFormatDesc7stencilE"></span><span id="TextureFormatDesc::stencil__TextureChannelFormatDesc"></span><span class="target" id="struct_texture_format_desc_1a1665c4afcc880db350cf6124088bf9fd"></span><a class="reference internal" href="#_CPPv424TextureChannelFormatDesc" title="TextureChannelFormatDesc"><span class="n"><span class="pre">TextureChannelFormatDesc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stencil</span></span></span><a class="headerlink" href="#_CPPv4N17TextureFormatDesc7stencilE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv411TextureInfo">
+<span id="_CPPv311TextureInfo"></span><span id="_CPPv211TextureInfo"></span><span id="TextureInfo"></span><span class="target" id="struct_texture_info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TextureInfo</span></span></span><a class="headerlink" href="#_CPPv411TextureInfo" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo1wE">
+<span id="_CPPv3N11TextureInfo1wE"></span><span id="_CPPv2N11TextureInfo1wE"></span><span id="TextureInfo::w__unsigned-short"></span><span class="target" id="struct_texture_info_1a1ba6ca4ef264c70097653d51aa3005fd"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">w</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo1wE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>width, height, depth (for VOLTEX), array slices (slice count for ARRTEX or 6 for CUBETEX) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo1hE">
+<span id="_CPPv3N11TextureInfo1hE"></span><span id="_CPPv2N11TextureInfo1hE"></span><span id="TextureInfo::h__unsigned-short"></span><span class="target" id="struct_texture_info_1a4937e0c3d4b4c2a91b106f608b58a582"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">h</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo1hE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo1dE">
+<span id="_CPPv3N11TextureInfo1dE"></span><span id="_CPPv2N11TextureInfo1dE"></span><span id="TextureInfo::d__unsigned-short"></span><span class="target" id="struct_texture_info_1a429420cd1e854361544c6184f9ddda1f"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo1dE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo1aE">
+<span id="_CPPv3N11TextureInfo1aE"></span><span id="_CPPv2N11TextureInfo1aE"></span><span id="TextureInfo::a__unsigned-short"></span><span class="target" id="struct_texture_info_1afbd253748cdec2147125d5bf1ff05464"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">a</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo1aE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo9mipLevelsE">
+<span id="_CPPv3N11TextureInfo9mipLevelsE"></span><span id="_CPPv2N11TextureInfo9mipLevelsE"></span><span id="TextureInfo::mipLevels__unsigned-short"></span><span class="target" id="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mipLevels</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo9mipLevelsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>all mips and res type </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo7resTypeE">
+<span id="_CPPv3N11TextureInfo7resTypeE"></span><span id="_CPPv2N11TextureInfo7resTypeE"></span><span id="TextureInfo::resType__unsigned-short"></span><span class="target" id="struct_texture_info_1ae20e108f930239d9657034636fafdecb"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo7resTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11TextureInfo4cflgE">
+<span id="_CPPv3N11TextureInfo4cflgE"></span><span id="_CPPv2N11TextureInfo4cflgE"></span><span id="TextureInfo::cflg__unsigned"></span><span class="target" id="struct_texture_info_1a340017c158bc5ce503bfd6a4c41c623e"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cflg</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11TextureInfo4cflgE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>texture creation flags </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv411BaseTexture">
+<span id="_CPPv311BaseTexture"></span><span id="_CPPv211BaseTexture"></span><span id="BaseTexture"></span><span class="target" id="class_base_texture"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseTexture</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">D3dResource</span></span><a class="headerlink" href="#_CPPv411BaseTexture" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture17setReloadCallbackEP11IReloadData">
+<span id="_CPPv3N11BaseTexture17setReloadCallbackEP11IReloadData"></span><span id="_CPPv2N11BaseTexture17setReloadCallbackEP11IReloadData"></span><span id="BaseTexture::setReloadCallback__IReloadDataP"></span><span class="target" id="class_base_texture_1a6a85e670c443104a70883f192cb0be93"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setReloadCallback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N11BaseTexture11IReloadDataE" title="BaseTexture::IReloadData"><span class="n"><span class="pre">IReloadData</span></span></a><span class="p"><span class="pre">*</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture17setReloadCallbackEP11IReloadData" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture12generateMipsEv">
+<span id="_CPPv3N11BaseTexture12generateMipsEv"></span><span id="_CPPv2N11BaseTexture12generateMipsEv"></span><span id="BaseTexture::generateMips"></span><span class="target" id="class_base_texture_1a508ff31351ba5c970d533ef14fa85159"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generateMips</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture12generateMipsEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture6updateEP11BaseTexture">
+<span id="_CPPv3N11BaseTexture6updateEP11BaseTexture"></span><span id="_CPPv2N11BaseTexture6updateEP11BaseTexture"></span><span id="BaseTexture::update__BaseTextureP"></span><span class="target" id="class_base_texture_1ae66fab8be80dfdf1379ef6c3c3a54d18"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">src</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture6updateEP11BaseTexture" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture13calcSubResIdxEii">
+<span id="_CPPv3NK11BaseTexture13calcSubResIdxEii"></span><span id="_CPPv2NK11BaseTexture13calcSubResIdxEii"></span><span id="BaseTexture::calcSubResIdx__i.iC"></span><span class="target" id="class_base_texture_1ab562f86e581b7f61b63141fdda32fdea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcSubResIdx</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slice</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture13calcSubResIdxEii" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture15updateSubRegionEP11BaseTextureiiiiiiiiiii">
+<span id="_CPPv3N11BaseTexture15updateSubRegionEP11BaseTextureiiiiiiiiiii"></span><span id="_CPPv2N11BaseTexture15updateSubRegionEP11BaseTextureiiiiiiiiiii"></span><span id="BaseTexture::updateSubRegion__BaseTextureP.i.i.i.i.i.i.i.i.i.i.i"></span><span class="target" id="class_base_texture_1a78250fb6cf2f55d92a38708836317c85"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">updateSubRegion</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">src</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_subres_idx</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_y</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_z</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_h</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_d</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dest_subres_idx</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dest_x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dest_y</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dest_z</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture15updateSubRegionEP11BaseTextureiiiiiiiiiii" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture11level_countEv">
+<span id="_CPPv3NK11BaseTexture11level_countEv"></span><span id="_CPPv2NK11BaseTexture11level_countEv"></span><span id="BaseTexture::level_countC"></span><span class="target" id="class_base_texture_1aa5f45a64584c9533b7606e99dfd5308f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture11level_countEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture7texaddrEi">
+<span id="_CPPv3N11BaseTexture7texaddrEi"></span><span id="_CPPv2N11BaseTexture7texaddrEi"></span><span id="BaseTexture::texaddr__i"></span><span class="target" id="class_base_texture_1acebf5c8f6762b8ed516346237cbf37bc"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texaddr</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">addrmode</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture7texaddrEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture8texaddruEi">
+<span id="_CPPv3N11BaseTexture8texaddruEi"></span><span id="_CPPv2N11BaseTexture8texaddruEi"></span><span id="BaseTexture::texaddru__i"></span><span class="target" id="class_base_texture_1a57081007b5f9b7f91f5ece66dbb84dfd"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texaddru</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">addrmode</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture8texaddruEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture8texaddrvEi">
+<span id="_CPPv3N11BaseTexture8texaddrvEi"></span><span id="_CPPv2N11BaseTexture8texaddrvEi"></span><span id="BaseTexture::texaddrv__i"></span><span class="target" id="class_base_texture_1aad5ec1cd77741ce5af1da027b29e1f65"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texaddrv</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">addrmode</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture8texaddrvEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture8texaddrwEi">
+<span id="_CPPv3N11BaseTexture8texaddrwEi"></span><span id="_CPPv2N11BaseTexture8texaddrwEi"></span><span id="BaseTexture::texaddrw__i"></span><span class="target" id="class_base_texture_1a944fcd7c9eb44e23654e63d191c1c4ac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texaddrw</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture8texaddrwEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture14texbordercolorE8E3DCOLOR">
+<span id="_CPPv3N11BaseTexture14texbordercolorE8E3DCOLOR"></span><span id="_CPPv2N11BaseTexture14texbordercolorE8E3DCOLOR"></span><span id="BaseTexture::texbordercolor__E3DCOLOR"></span><span class="target" id="class_base_texture_1a5413d05f3859cc093279e54c5a78d259"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texbordercolor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">E3DCOLOR</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture14texbordercolorE8E3DCOLOR" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture9texfilterEi">
+<span id="_CPPv3N11BaseTexture9texfilterEi"></span><span id="_CPPv2N11BaseTexture9texfilterEi"></span><span id="BaseTexture::texfilter__i"></span><span class="target" id="class_base_texture_1ad7dc19e67a42034808f61b9fdfe7b4f9"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texfilter</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">filtermode</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture9texfilterEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture9texmipmapEi">
+<span id="_CPPv3N11BaseTexture9texmipmapEi"></span><span id="_CPPv2N11BaseTexture9texmipmapEi"></span><span id="BaseTexture::texmipmap__i"></span><span class="target" id="class_base_texture_1a89f92af03b1df53c73ca729aabe1146c"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texmipmap</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mipmapmode</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture9texmipmapEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture6texlodEf">
+<span id="_CPPv3N11BaseTexture6texlodEf"></span><span id="_CPPv2N11BaseTexture6texlodEf"></span><span id="BaseTexture::texlod__float"></span><span class="target" id="class_base_texture_1a6934144c3cbe638cd563bf8f6dbd7f57"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texlod</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mipmaplod</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture6texlodEf" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture11texmiplevelEii">
+<span id="_CPPv3N11BaseTexture11texmiplevelEii"></span><span id="_CPPv2N11BaseTexture11texmiplevelEii"></span><span id="BaseTexture::texmiplevel__i.i"></span><span class="target" id="class_base_texture_1a895d85357c93cb61543d560fe798437a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texmiplevel</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">minlevel</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">maxlevel</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture11texmiplevelEii" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture13setAnisotropyEi">
+<span id="_CPPv3N11BaseTexture13setAnisotropyEi"></span><span id="_CPPv2N11BaseTexture13setAnisotropyEi"></span><span id="BaseTexture::setAnisotropy__i"></span><span class="target" id="class_base_texture_1a2aa429954c5195cdaac585502f6b2743"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setAnisotropy</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture13setAnisotropyEi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture11isCubeArrayEv">
+<span id="_CPPv3NK11BaseTexture11isCubeArrayEv"></span><span id="_CPPv2NK11BaseTexture11isCubeArrayEv"></span><span id="BaseTexture::isCubeArrayC"></span><span class="target" id="class_base_texture_1a0c4bf5f5d0ae87acbb22092cb164e4e4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isCubeArray</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture11isCubeArrayEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture14setReadStencilEb">
+<span id="_CPPv3N11BaseTexture14setReadStencilEb"></span><span id="_CPPv2N11BaseTexture14setReadStencilEb"></span><span id="BaseTexture::setReadStencil__b"></span><span class="target" id="class_base_texture_1a17ddd5e02b9297e0652ec646d8d54b12"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setReadStencil</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture14setReadStencilEb" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture6setTIDE9TEXTUREID">
+<span id="_CPPv3N11BaseTexture6setTIDE9TEXTUREID"></span><span id="_CPPv2N11BaseTexture6setTIDE9TEXTUREID"></span><span id="BaseTexture::setTID__TEXTUREID"></span><span class="target" id="class_base_texture_1a09b445afa42678f459eee01c85160e61"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setTID</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">TEXTUREID</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture6setTIDE9TEXTUREID" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture6getTIDEv">
+<span id="_CPPv3NK11BaseTexture6getTIDEv"></span><span id="_CPPv2NK11BaseTexture6getTIDEv"></span><span id="BaseTexture::getTIDC"></span><span class="target" id="class_base_texture_1a6fa90bc93f3169362b5a9bdf52dd33f2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">TEXTUREID</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getTID</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture6getTIDEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture10getTexNameEv">
+<span id="_CPPv3NK11BaseTexture10getTexNameEv"></span><span id="_CPPv2NK11BaseTexture10getTexNameEv"></span><span id="BaseTexture::getTexNameC"></span><span class="target" id="class_base_texture_1a6da0232c172030d75af7ea25402fc61a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getTexName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture10getTexNameEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture13setResApiNameEPKc">
+<span id="_CPPv3NK11BaseTexture13setResApiNameEPKc"></span><span id="_CPPv2NK11BaseTexture13setResApiNameEPKc"></span><span id="BaseTexture::setResApiName__cCPC"></span><span class="target" id="class_base_texture_1ab7de60341dce70d0ec44fdecb319cb46"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setResApiName</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture13setResApiNameEPKc" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture7lockimgEPPvRiij">
+<span id="_CPPv3N11BaseTexture7lockimgEPPvRiij"></span><span id="_CPPv2N11BaseTexture7lockimgEPPvRiij"></span><span id="BaseTexture::lockimg__voidPP.iR.i.unsigned"></span><span class="target" id="class_base_texture_1a42f033152273c04456761b2b0c34be8a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockimg</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">stride_bytes</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture7lockimgEPPvRiij" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture7lockimgEPPvRiiij">
+<span id="_CPPv3N11BaseTexture7lockimgEPPvRiiij"></span><span id="_CPPv2N11BaseTexture7lockimgEPPvRiiij"></span><span id="BaseTexture::lockimg__voidPP.iR.i.i.unsigned"></span><span class="target" id="class_base_texture_1a6f933fe1dfb254b85d2e560369b5a0e6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockimg</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">stride_bytes</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">layer</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture7lockimgEPPvRiiij" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture9unlockimgEv">
+<span id="_CPPv3N11BaseTexture9unlockimgEv"></span><span id="_CPPv2N11BaseTexture9unlockimgEv"></span><span id="BaseTexture::unlockimg"></span><span class="target" id="class_base_texture_1ab9499abe01802300567ca7374c62de4c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unlockimg</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture9unlockimgEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture6unlockEv">
+<span id="_CPPv3N11BaseTexture6unlockEv"></span><span id="_CPPv2N11BaseTexture6unlockEv"></span><span id="BaseTexture::unlock"></span><span class="target" id="class_base_texture_1ac9b624d1dc511cd734b9438feb4cd857"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unlock</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture6unlockEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture7lockboxEPPvRiRiij">
+<span id="_CPPv3N11BaseTexture7lockboxEPPvRiRiij"></span><span id="_CPPv2N11BaseTexture7lockboxEPPvRiRiij"></span><span id="BaseTexture::lockbox__voidPP.iR.iR.i.unsigned"></span><span class="target" id="class_base_texture_1a2b294e235993c086e13d0456d71f809e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockbox</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span>, <span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&amp;</span></span>, <span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&amp;</span></span>, <span class="kt"><span class="pre">int</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture7lockboxEPPvRiRiij" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture9unlockboxEv">
+<span id="_CPPv3N11BaseTexture9unlockboxEv"></span><span id="_CPPv2N11BaseTexture9unlockboxEv"></span><span id="BaseTexture::unlockbox"></span><span class="target" id="class_base_texture_1a0cd9f4ffc918991330e9190dd4db51f8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unlockbox</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture9unlockboxEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture12addDirtyRectERK7RectInt">
+<span id="_CPPv3N11BaseTexture12addDirtyRectERK7RectInt"></span><span id="_CPPv2N11BaseTexture12addDirtyRectERK7RectInt"></span><span id="BaseTexture::addDirtyRect__RectIntCR"></span><span class="target" id="class_base_texture_1a97328b3616c2e820ec9e4071f1595218"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addDirtyRect</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">RectInt</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture12addDirtyRectERK7RectInt" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK11BaseTexture7getinfoER11TextureInfoi">
+<span id="_CPPv3NK11BaseTexture7getinfoER11TextureInfoi"></span><span id="_CPPv2NK11BaseTexture7getinfoER11TextureInfoi"></span><span id="BaseTexture::getinfo__TextureInfoR.iC"></span><span class="target" id="class_base_texture_1a68cbf22a48be7a1db2cec1ffc49c08b0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getinfo</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv411TextureInfo" title="TextureInfo"><span class="n"><span class="pre">TextureInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">info</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK11BaseTexture7getinfoER11TextureInfoi" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN11BaseTexture9lockimgExEiPP1TRiij">
+<span id="_CPPv3I0EN11BaseTexture9lockimgExEPP1TRiij"></span><span id="_CPPv2I0EN11BaseTexture9lockimgExEPP1TRiij"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="class_base_texture_1a2103282b55bcf3ac764d98777f7df4a5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockimgEx</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN11BaseTexture9lockimgExEiPP1TRiij" title="BaseTexture::lockimgEx::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">stride_bytes</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4NUt2_3515TEXLOCK_DEFAULTE" title="[anonymous]::TEXLOCK_DEFAULT"><span class="n"><span class="pre">TEXLOCK_DEFAULT</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN11BaseTexture9lockimgExEiPP1TRiij" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture17makeTmpTexResCopyEiiiib">
+<span id="_CPPv3N11BaseTexture17makeTmpTexResCopyEiiiib"></span><span id="_CPPv2N11BaseTexture17makeTmpTexResCopyEiiiib"></span><span id="BaseTexture::makeTmpTexResCopy__i.i.i.i.b"></span><span class="target" id="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">makeTmpTexResCopy</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span>, <span class="kt"><span class="pre">int</span></span>, <span class="kt"><span class="pre">int</span></span>, <span class="kt"><span class="pre">int</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture17makeTmpTexResCopyEiiiib" title="Permalink to this definition"></a><br /></dt>
+<dd><p>created temporary <a class="reference internal" href="#class_base_texture"><span class="std std-ref">BaseTexture</span></a> with texture res object with given dimensions (texture format and texture subtype is used from original) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture19replaceTexResObjectERP11BaseTexture">
+<span id="_CPPv3N11BaseTexture19replaceTexResObjectERP11BaseTexture"></span><span id="_CPPv2N11BaseTexture19replaceTexResObjectERP11BaseTexture"></span><span id="BaseTexture::replaceTexResObject__BaseTexturePR"></span><span class="target" id="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">replaceTexResObject</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">new_tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture19replaceTexResObjectERP11BaseTexture" title="Permalink to this definition"></a><br /></dt>
+<dd><p>replaces texture res object with new one of new_tex and then destroys new_tex (destruction may be delayed by driver) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture11allocateTexEv">
+<span id="_CPPv3N11BaseTexture11allocateTexEv"></span><span id="_CPPv2N11BaseTexture11allocateTexEv"></span><span id="BaseTexture::allocateTex"></span><span class="target" id="class_base_texture_1a072ba682d61c5ec00e27867908a4ab7b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allocateTex</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture11allocateTexEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>forces allocation of texture resource; return true if tex allocated and ready for use </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture10discardTexEv">
+<span id="_CPPv3N11BaseTexture10discardTexEv"></span><span id="_CPPv2N11BaseTexture10discardTexEv"></span><span id="BaseTexture::discardTex"></span><span class="target" id="class_base_texture_1a72a607b61e2220156946976bdedc57b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">discardTex</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture10discardTexEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>discards texture and returns it to STUB state </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture8downSizeEiiiijj">
+<span id="_CPPv3N11BaseTexture8downSizeEiiiijj"></span><span id="_CPPv2N11BaseTexture8downSizeEiiiijj"></span><span id="BaseTexture::downSize__i.i.i.i.unsigned.unsigned"></span><span class="target" id="class_base_texture_1ab1ffcf394701e8a613b119c91c7c7d39"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">downSize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">depth</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mips</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_src_level</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level_offset</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture8downSizeEiiiijj" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture6upSizeEiiiijj">
+<span id="_CPPv3N11BaseTexture6upSizeEiiiijj"></span><span id="_CPPv2N11BaseTexture6upSizeEiiiijj"></span><span id="BaseTexture::upSize__i.i.i.i.unsigned.unsigned"></span><span class="target" id="class_base_texture_1a153f19eab98a7ae8371f62d195d43b8c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">upSize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">depth</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mips</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_src_level</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level_offset</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture6upSizeEiiiijj" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture13calcSubResIdxEiii">
+<span id="_CPPv3N11BaseTexture13calcSubResIdxEiii"></span><span id="_CPPv2N11BaseTexture13calcSubResIdxEiii"></span><span id="BaseTexture::calcSubResIdx__i.i.i"></span><span class="target" id="class_base_texture_1adfed71ba8678e0549c6f6dc01b48f1d5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcSubResIdx</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slice</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mip_levels</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture13calcSubResIdxEiii" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-functions">Protected Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTextureD0Ev">
+<span id="_CPPv3N11BaseTextureD0Ev"></span><span id="_CPPv2N11BaseTextureD0Ev"></span><span id="BaseTexture::~BaseTexture"></span><span class="target" id="class_base_texture_1a44c435c54611c614300851ef257dbbcb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~BaseTexture</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N11BaseTextureD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-static-attributes">Protected Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture10TEX_COPIEDE">
+<span id="_CPPv3N11BaseTexture10TEX_COPIEDE"></span><span id="_CPPv2N11BaseTexture10TEX_COPIEDE"></span><span id="BaseTexture::TEX_COPIED__i"></span><span class="target" id="class_base_texture_1ae8d686517cc0babc4a0829df1c5e9a25"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEX_COPIED</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="w"> </span><span class="o"><span class="pre">&lt;&lt;</span></span><span class="w"> </span><span class="m"><span class="pre">30</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture10TEX_COPIEDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture11IReloadDataE">
+<span id="_CPPv3N11BaseTexture11IReloadDataE"></span><span id="_CPPv2N11BaseTexture11IReloadDataE"></span><span id="BaseTexture::IReloadData"></span><span class="target" id="struct_base_texture_1_1_i_reload_data"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IReloadData</span></span></span><a class="headerlink" href="#_CPPv4N11BaseTexture11IReloadDataE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture11IReloadDataD0Ev">
+<span id="_CPPv3N11BaseTexture11IReloadDataD0Ev"></span><span id="_CPPv2N11BaseTexture11IReloadDataD0Ev"></span><span id="BaseTexture::IReloadData::~IReloadData"></span><span class="target" id="struct_base_texture_1_1_i_reload_data_1a27265b2427473e2e025d35723611c163"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~IReloadData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11BaseTexture11IReloadDataD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture11IReloadData12reloadD3dResEP11BaseTexture">
+<span id="_CPPv3N11BaseTexture11IReloadData12reloadD3dResEP11BaseTexture"></span><span id="_CPPv2N11BaseTexture11IReloadData12reloadD3dResEP11BaseTexture"></span><span id="BaseTexture::IReloadData::reloadD3dRes__BaseTextureP"></span><span class="target" id="struct_base_texture_1_1_i_reload_data_1a118c145d10ab3bbc119b1601240c6e36"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reloadD3dRes</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture11IReloadData12reloadD3dResEP11BaseTexture" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11BaseTexture11IReloadData11destroySelfEv">
+<span id="_CPPv3N11BaseTexture11IReloadData11destroySelfEv"></span><span id="_CPPv2N11BaseTexture11IReloadData11destroySelfEv"></span><span id="BaseTexture::IReloadData::destroySelf"></span><span class="target" id="struct_base_texture_1_1_i_reload_data_1a8e6ab1aaeb013836a15e777d6e2f323b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroySelf</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11BaseTexture11IReloadData11destroySelfEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv44ddsx">
+<span id="_CPPv34ddsx"></span><span id="_CPPv24ddsx"></span><span id="ddsx"></span><span class="target" id="namespaceddsx"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ddsx</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="constants.html" class="btn btn-neutral float-left" title="Constants, Structures and Enumerations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="helperClasses.html" class="btn btn-neutral float-right" title="Helper classes for D3D API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Jun 29, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

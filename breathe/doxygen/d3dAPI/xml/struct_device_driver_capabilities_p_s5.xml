@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_p_s5" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesPS5</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_p_s4" prot="public" virt="non-virtual">DeviceDriverCapabilitiesPS4</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s5_1a843ad8b2e11f8374960a0f78e5d1b94c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports stereo render expansion. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="960" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="960" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for PlayStation 5. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Uses PlayStation 4 optimized values and overrides only differences. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_p_s4" kindref="compound">DeviceDriverCapabilitiesPS4</ref> </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="struct_device_driver_capabilities_p_s4"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesPS5</label>
+        <link refid="struct_device_driver_capabilities_p_s5"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="struct_device_driver_capabilities_p_s4"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesPS5</label>
+        <link refid="struct_device_driver_capabilities_p_s5"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="957" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="958" bodyend="961"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0bcae62814a425663c7fb3650ad73e01" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ae68d9dd5180d2b80d6e5d0e6f4242880" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a7fd54152680618c70886305aa551d907" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4674236ffdb840049ae70999fd857e3c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ae421f36c3e5e3382c12c9189b6ebc0b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0210852996a58ff65c087e88ff6237d5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0c5b752117119e2e4845ebfed626f1db" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aadbdbff7d15825aff2748c039a0a7b4d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aa218c22109e1b5247d26623e1a9c62f4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab674178b61c1e774fb492dde535e4025" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab38cef0542667cc561a24e8ca0e60d1d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4b05c0afe729043a40d046b229514b76" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1abb692518a4faa0127eae563b89e952bb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a2d35fdf8f9937fe7a3661ae2dbca327b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adc8dd9131e3c1d19f6407cf9d7463a45" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adadba44e1e64f113bec60133cf26c8c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1070edb832bc097a159ca91574e52981" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ada94a6f2a6293f56c4b0b10ff3aeee06" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aa4ac205303ad5bfbbf7d85861cb8701e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aa5fa3b064ee2248cef62525de3bfad6d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac5bd05642d65e301dc4e34cfa3d0fede" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a534907bb1d093fcb0dbe32f98ca4f288" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1add62d30de8cc4c995d6072c3a492b071" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adb60798ee71218919afc6ce3e5595973" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a133f227e1f355bbbc544667cf0b5969a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab161d0c3117f96078cb7f5f3e477425e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1d0cbb70a9c5e3fe77c72465cd5e4174" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a06ae3b80b7b29309f5978dd45837c73f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1abad2e39863c0db33fd3993086c83ad8b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1068ec8914f496d2a409cd24890c47cc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a2ff63833ace337beae8f701697707c57" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a5561869786a84b8be4b5ac83997277f6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aacee18519e996042abf7116fc83f553b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1afdc778bb90dfcd42ebf6ca2bc3fe9895" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ad90b982edc6d06c3cf27954f17fa4734" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a98b9ca25fe714387119b4636bb9f413d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a43f7898db5a17c29a9acb8767d66353c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a97c960eefd9141cd6a661506552f541f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a3e6dc57b31308f099fadc2bb4135652e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_p_s5_1a843ad8b2e11f8374960a0f78e5d1b94c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a44196b849ac85246cd50928d9b64572f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1afc80eb0d6a6394b7abfdb4f9305dee72" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4f29a551bb8686f7fbf224d382f6d591" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac0d9de56c5ed00808134a009486fb75a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab1085a3d606d2b2c5a39e8cb0eea7032" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a817f27b38b01e2e58c4a757cfb74ed81" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adc1344863b6db84867114639869ef352" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac291a985e22c8f5d0aad144100dc4c5d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0ef8819f6c03789337616b77b09a7d3f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1af9177eeed750ea64a90d29124a07c911" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac2a7792d5279a8d57201fad57b9b5a44" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4f7d827305f0c18dda14aafa1dcaf441" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a27ff2ff40ca0493e24112d6416743f15" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1ae734392e834bec22f31bb5b5cc1f94" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a394e5b75e0a66a76d7a14ea0e6fc267b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

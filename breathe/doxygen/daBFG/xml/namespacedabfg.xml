@@ -1,0 +1,841 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespacedabfg" kind="namespace" language="C++">
+    <compoundname>dabfg</compoundname>
+    <innerclass refid="classdabfg_1_1_node_handle" prot="public">dabfg::NodeHandle</innerclass>
+    <innerclass refid="classdabfg_1_1_state_request" prot="public">dabfg::StateRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_auto_resolution_request" prot="public">dabfg::AutoResolutionRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_virtual_resource_creation_semi_request" prot="public">dabfg::VirtualResourceCreationSemiRequest</innerclass>
+    <innerclass refid="structdabfg_1_1_named_slot" prot="public">dabfg::NamedSlot</innerclass>
+    <innerclass refid="structdabfg_1_1_texture2d_create_info" prot="public">dabfg::Texture2dCreateInfo</innerclass>
+    <innerclass refid="structdabfg_1_1_buffer_create_info" prot="public">dabfg::BufferCreateInfo</innerclass>
+    <innerclass refid="classdabfg_1_1_name_space_request" prot="public">dabfg::NameSpaceRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_virtual_resource_semi_request" prot="public">dabfg::VirtualResourceSemiRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_name_space" prot="public">dabfg::NameSpace</innerclass>
+    <innerclass refid="classdabfg_1_1_virtual_pass_request" prot="public">dabfg::VirtualPassRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_virtual_resource_request" prot="public">dabfg::VirtualResourceRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_virtual_resource_handle" prot="public">dabfg::VirtualResourceHandle</innerclass>
+    <innerclass refid="structdabfg_1_1_external_state" prot="public">dabfg::ExternalState</innerclass>
+    <innerclass refid="structdabfg_1_1_vrs_requirements" prot="public">dabfg::VrsRequirements</innerclass>
+    <innerclass refid="classdabfg_1_1_registry" prot="public">dabfg::Registry</innerclass>
+    <innernamespace refid="namespacedabfg_1_1detail">dabfg::detail</innernamespace>
+    <innernamespace refid="namespacedabfg_1_1multiplexing">dabfg::multiplexing</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="stage_8h_1ab508f43bf870817256dfd606213ba4db" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>Stage</name>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba696b031073e74bf2cb98e5ef201d4aa3" prot="public">
+          <name>UNKNOWN</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>For legacy code only. Will suppress a barrier before this usage and force a barrier after this usage. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba0d47b4a5dfb11c12c2382349513b9b2e" prot="public">
+          <name>PRE_RASTER</name>
+          <initializer>= 1u &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>All pre-rasterization stages: indirect draw reading, vertex input, vertex shader, geometry shader, tesselation shaders, mesh shaders. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba1309488addcb247cddce3f8ed38aebb6" prot="public">
+          <name>POST_RASTER</name>
+          <initializer>= 1u &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>All post-rasterization stages: early tests, fragment shader, late tests, attachment output. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dbaac404d7ce6ca5862e9b8a2641fbafd90" prot="public">
+          <name>COMPUTE</name>
+          <initializer>= 1u &lt;&lt; 2</initializer>
+          <briefdescription>
+<para>Copute dispatches. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dbaeb5ddb3b6096fb90ff720d9c3e2a6628" prot="public">
+          <name>TRANSFER</name>
+          <initializer>= 1u &lt;&lt; 3</initializer>
+          <briefdescription>
+<para>Blit and copy operations. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba2c0fd52f85dbdb17fffd3d0d653013d3" prot="public">
+          <name>RAYTRACE</name>
+          <initializer>= 1u &lt;&lt; 4</initializer>
+          <briefdescription>
+<para>All raytrace shaders. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dbad3d4c5deb455ac79dd5ff47c88bd65d9" prot="public">
+          <name>PS</name>
+          <initializer>= POST_RASTER</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Aliases for simple use-cases. Note however that even though all PS usages are POST_RASTER, but not all POST_RASTER usages are from the pixel shader (PS). Use with caution so as not to confuse the reader of your code. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba2c54e23f4c5442c665a807ab19f61204" prot="public">
+          <name>VS</name>
+          <initializer>= PRE_RASTER</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba8d7e99c73cd5a10adaaf4c9f9a520368" prot="public">
+          <name>CS</name>
+          <initializer>= COMPUTE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba9610cb37185d9e4d4316114bed2ab3c5" prot="public">
+          <name>PS_OR_CS</name>
+          <initializer>= PS | CS</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dba1b88f31774becdfc8ccef062b2496f5b" prot="public">
+          <name>ALL_GRAPHICS</name>
+          <initializer>= PRE_RASTER | POST_RASTER</initializer>
+          <briefdescription>
+<para>Anything graphics-related. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="stage_8h_1ab508f43bf870817256dfd606213ba4dbad836d748421aedd50926610946a2612d" prot="public">
+          <name>ALL_INDIRECTION</name>
+          <initializer>= PRE_RASTER | COMPUTE | RAYTRACE</initializer>
+          <briefdescription>
+<para>Reads from inderection buffers can only happen during one of these stages. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Describes a GPU pipeline stage at which a resource is accessed. Part of the information required for daBfg to place barriers. Note that this is a flags enum, so you can combine multiple stages. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" line="20" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" bodystart="21" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="enum" id="side_effects_8h_1aa090b250ab8434d0efabe7ae9b14e463" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>SideEffects</name>
+        <enumvalue id="side_effects_8h_1aa090b250ab8434d0efabe7ae9b14e463a6adf97f83acf6453d4a6a4b1070f3754" prot="public">
+          <name>None</name>
+          <briefdescription>
+<para>Node has an empty execution callback that can safely be skipped. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="side_effects_8h_1aa090b250ab8434d0efabe7ae9b14e463aafbf0897a5a83fdd873dfb032ec695d3" prot="public">
+          <name>Internal</name>
+          <briefdescription>
+<para>Default: node only accesses daBfg state and may be culled away. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="side_effects_8h_1aa090b250ab8434d0efabe7ae9b14e463ab206a1b4ea1097761f78e8876f6da779" prot="public">
+          <name>External</name>
+          <briefdescription>
+<para>Node has side effects outside daBfg and will never be culled away. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Specified the side effects of executing a node. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/sideEffects.h" line="13" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/sideEffects.h" bodystart="14" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="enum" id="usage_8h_1abb0315dd866f3afd42417af491d02764" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>Usage</name>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a696b031073e74bf2cb98e5ef201d4aa3" prot="public">
+          <name>UNKNOWN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>For legacy code only, will suppress a barrier before this usage and force a barrier after this usage. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764aa63816e658355cace69f46e9242fed85" prot="public">
+          <name>COLOR_ATTACHMENT</name>
+          <briefdescription>
+<para>Regular render target. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a08ea2c247044640bd3e2d3ad238e0ac6" prot="public">
+          <name>INPUT_ATTACHMENT</name>
+          <briefdescription>
+<para>Vulkan only: subpass input attachment. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764aba7579ee628893eb0c00a258beac2e61" prot="public">
+          <name>DEPTH_ATTACHMENT</name>
+          <briefdescription>
+<para>Depth buffer. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764addee6c92527ce45bd946be2ca1ab5923" prot="public">
+          <name>DEPTH_ATTACHMENT_AND_SHADER_RESOURCE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>A special read-only usage type that allows a texture to be used as a read-only depth target as well as a sampled image simultaneously. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764aa458be3770c54edd6535c18ac1fe731f" prot="public">
+          <name>RESOLVE_ATTACHMENT</name>
+          <briefdescription>
+<para>Vulkan only: automatic MSAA resolve inside a subpass. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a46dbeefa1c9cf07f114b142fc7096f43" prot="public">
+          <name>SHADER_RESOURCE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Any type of shader resource, i.e. a sampled image or a storage buffer/texture in terms of vulkan and an SRV or a UAV in terms of directX. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a4ca062f3b263f76e4246287f4fce16bd" prot="public">
+          <name>CONSTANT_BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Special type of shader resource that is limited in size but is faster to read. Marked as <computeroutput>cbuffer</computeroutput> in shaders. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a24ba47a6b7ca772e4185e7a7b54d4c90" prot="public">
+          <name>INDEX_BUFFER</name>
+          <briefdescription>
+<para>Index buffer for a draw primitive. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764aa77fcc0c8db7e3e4c3ca370997298c34" prot="public">
+          <name>VERTEX_BUFFER</name>
+          <briefdescription>
+<para>Vertex buffer for a draw primitive. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764ae8606d021da140a92c7eba8d9b8af84f" prot="public">
+          <name>COPY</name>
+          <briefdescription>
+<para>Either the source or the destination of a copy operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764afceb4f1763a5a673cad9b33713e8f265" prot="public">
+          <name>BLIT</name>
+          <briefdescription>
+<para>Either the source or the destination of a blit operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a7b13946562f2c201cd5d104358ebe8af" prot="public">
+          <name>INDIRECTION_BUFFER</name>
+          <briefdescription>
+<para>A buffer used for an indirect draw/dispatch/raytrace primitive. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usage_8h_1abb0315dd866f3afd42417af491d02764a03d68685b3c84c181aff34c8aac84f76" prot="public">
+          <name>VRS_RATE_TEXTURE</name>
+          <briefdescription>
+<para>A texture used for determining variable shading rate for regions. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Describes the way a node uses a resource. Part of the information required for daBfg to place barriers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/usage.h" line="18" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/usage.h" bodystart="19" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="enum" id="history_8h_1af610979eea5d3c7f45af0f7f4a017a15" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>History</name>
+        <enumvalue id="history_8h_1af610979eea5d3c7f45af0f7f4a017a15abafd7322c6e97d25b6299b5d6fe8920b" prot="public">
+          <name>No</name>
+          <briefdescription>
+<para>Resource does not need history, requesting it will result in an error message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="history_8h_1af610979eea5d3c7f45af0f7f4a017a15a34703f5435004c8a983bbce26a8476fb" prot="public">
+          <name>ClearZeroOnFirstFrame</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>History is required and should be an all-zero image on the first frame. This might be slow, so should only be used when necessary. NOTE: for CPU-resources, this simply default-constructs them </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="history_8h_1af610979eea5d3c7f45af0f7f4a017a15affc059c5154ced7686f64990ce2cd9b6" prot="public">
+          <name>DiscardOnFirstFrame</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>History is required and it doesn&apos;t matter what it contains on the first frame This is the preferred variant as it is faster, but it might cause artifacts and trash value propagation for cumulative type algorithms. NOTE: for CPU-resources, this simply default-constructs them </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>History policy for a resource. Must always be specified on creation. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/history.h" line="15" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/history.h" bodystart="16" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="external_resources_8h_1a37bbd8c7587ca9fe5dd1164d5a3680ff" prot="public" static="no">
+        <type>eastl::variant&lt; ManagedTexView, ManagedBufView &gt;</type>
+        <definition>using dabfg::ExternalResource = typedef eastl::variant&lt;ManagedTexView, ManagedBufView&gt;</definition>
+        <argsstring></argsstring>
+        <name>ExternalResource</name>
+        <briefdescription>
+<para>A concrete physical resource provided to daBfg for external virtual resource on a particular multiplexing iteration. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/externalResources.h" line="22" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/externalResources.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="external_resources_8h_1ae51ce092545c8cba7471a3c9eb72b63e" prot="public" static="no">
+        <type>dag::FixedMoveOnlyFunction&lt; 32, ExternalResource(const <ref refid="structdabfg_1_1multiplexing_1_1_index" kindref="compound">multiplexing::Index</ref> &amp;) const  &gt;</type>
+        <definition>using dabfg::ExternalResourceProvider = typedef dag::FixedMoveOnlyFunction&lt;32, ExternalResource(const multiplexing::Index &amp;) const&gt;</definition>
+        <argsstring></argsstring>
+        <name>ExternalResourceProvider</name>
+        <briefdescription>
+<para>A callback that provides a physical resource to daBfg for a particular external virtual resource on a particular multiplexing iteration. Note that if a node that registers this virtual resource is multiplexed along any dimension, this callback will be called multiple times and must return different values each time. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/externalResources.h" line="31" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/externalResources.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="variable_rate_shading_8h_1a9f69cda4b2285a8a65c0adb595250d84" prot="public" static="no">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; detail::ResourceRequestPolicy::Readonly &gt;</type>
+        <definition>using dabfg::VrsRateTextureRequest = typedef VirtualResourceSemiRequest&lt;detail::ResourceRequestPolicy::Readonly&gt;</definition>
+        <argsstring></argsstring>
+        <name>VrsRateTextureRequest</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="17" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="priority_8h_1a8d8b53fffa7503363a4b776e2aaf8e84" prot="public" static="no">
+        <type>int32_t</type>
+        <definition>using dabfg::priority_t = typedef int32_t</definition>
+        <argsstring></argsstring>
+        <name>priority_t</name>
+        <briefdescription>
+<para>Type for daBfg node execution priorities. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" line="15" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="resource_creation_8h_1a92be71649fb1ac3629733933bbb8ea65" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int dabfg::AUTO_MIP_COUNT</definition>
+        <argsstring></argsstring>
+        <name>AUTO_MIP_COUNT</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Special value for <ref refid="structdabfg_1_1_texture2d_create_info_1aacbec16fa75333b3b2c83d96c2121509" kindref="member">Texture2dCreateInfo::mipLevels</ref>. daBfg will automatically generate all mip levels for such a texture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="35" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="priority_8h_1a9ca500884d06214c8090bd3f584bf1e6" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr priority_t</type>
+        <definition>constexpr priority_t dabfg::PRIO_DEFAULT</definition>
+        <argsstring></argsstring>
+        <name>PRIO_DEFAULT</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Default priority that is used when none is specified explicitly. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" line="18" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="priority_8h_1a4b081cd2f51beb76bca782f7fa32121a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr priority_t</type>
+        <definition>constexpr priority_t dabfg::PRIO_AS_LATE_AS_POSSIBLE</definition>
+        <argsstring></argsstring>
+        <name>PRIO_AS_LATE_AS_POSSIBLE</name>
+        <initializer>= eastl::numeric_limits&lt;priority_t&gt;::max()</initializer>
+        <briefdescription>
+<para>Max priority: the node will be executed as late as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" line="21" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="priority_8h_1a42a7847790dead3e7b722165d4cd069d" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr priority_t</type>
+        <definition>constexpr priority_t dabfg::PRIO_AS_EARLY_AS_POSSIBLE</definition>
+        <argsstring></argsstring>
+        <name>PRIO_AS_EARLY_AS_POSSIBLE</name>
+        <initializer>= eastl::numeric_limits&lt;priority_t&gt;::min()</initializer>
+        <briefdescription>
+<para>Min priority: the node will be executed as early as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" line="24" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/priority.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="stage_8h_1acc611a73b78ffc20c1c2c492b8a52392" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr Stage</type>
+        <definition>constexpr Stage dabfg::operator|</definition>
+        <argsstring>(Stage a, Stage b)</argsstring>
+        <name>operator|</name>
+        <param>
+          <type>Stage</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>Stage</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" line="69" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="stage_8h_1a152cfca116592db30ace2da2370efe08" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr Stage &amp;</type>
+        <definition>constexpr Stage&amp; dabfg::operator|=</definition>
+        <argsstring>(Stage &amp;a, Stage b)</argsstring>
+        <name>operator|=</name>
+        <param>
+          <type>Stage &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>Stage</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" line="71" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" bodystart="71" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="stage_8h_1ab450013882747fd7a51230a5a484dac7" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr Stage</type>
+        <definition>constexpr Stage dabfg::operator&amp;</definition>
+        <argsstring>(Stage a, Stage b)</argsstring>
+        <name>operator&amp;</name>
+        <param>
+          <type>Stage</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>Stage</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" line="77" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="stage_8h_1a319ef6dc75ab9cd0ec8ede6c7b7ad805" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool dabfg::stagesSubsetOf</definition>
+        <argsstring>(Stage subset, Stage superset)</argsstring>
+        <name>stagesSubsetOf</name>
+        <param>
+          <type>Stage</type>
+          <declname>subset</declname>
+        </param>
+        <param>
+          <type>Stage</type>
+          <declname>superset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" line="79" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stage.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref></type>
+        <definition>NameSpace dabfg::root</definition>
+        <argsstring>()</argsstring>
+        <name>root</name>
+        <briefdescription>
+<para>Creates a namespace object for the root frame graph namespace. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The object representing the root namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="30" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="30" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gac09324b07f826b0accb38c9e5126a229" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::set_multiplexing_extents</definition>
+        <argsstring>(multiplexing::Extents extents)</argsstring>
+        <name>set_multiplexing_extents</name>
+        <param>
+          <type><ref refid="structdabfg_1_1multiplexing_1_1_extents" kindref="compound">multiplexing::Extents</ref></type>
+          <declname>extents</declname>
+        </param>
+        <briefdescription>
+<para>Sets the multiplexing extents for the following frames. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>May safely be called every frame, only triggers a recompilation when the values actually change </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="37" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gafb08b997cd8883e445148336ec97fd67" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::run_nodes</definition>
+        <argsstring>()</argsstring>
+        <name>run_nodes</name>
+        <briefdescription>
+<para>Executes the frame graph, possibly recompiling it. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="40" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1ga649d48c3ba1690f0cb81553d0e18e7a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::startup</definition>
+        <argsstring>()</argsstring>
+        <name>startup</name>
+        <briefdescription>
+<para>Initializes the daBfg backend. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="43" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="43" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1ga441273e564147def3a01e045558f69a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>shutdown</name>
+        <briefdescription>
+<para>Frees resources held by the daBfg backend. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="46" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="46" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1ga8006e9745ff18cb20d38eb4ac5b815a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::update_external_state</definition>
+        <argsstring>(ExternalState state)</argsstring>
+        <name>update_external_state</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_external_state" kindref="compound">ExternalState</ref></type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+<para>Sets various global state that is external to daBfg. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="49" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gacfb39ee2361920d78e56a0a4941c04ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::mark_external_resource_for_validation</definition>
+        <argsstring>(const D3dResource *resource)</argsstring>
+        <name>mark_external_resource_for_validation</name>
+        <param>
+          <type>const D3dResource *</type>
+          <declname>resource</declname>
+        </param>
+        <briefdescription>
+<para>Marks an external resource to be validated for illegal access within nodes. Note that daBfg-managed resources are always automatically validated for illegal access through sneaky global variables, but external are often used for gradual migration to FG, at which point they are indeed illegally accessed through global state and that is intended. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>resource</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to be validated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="60" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="60" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gacbc7438b6ff4f6edb6dd8a078bbfd51a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref></type>
+        <definition>NodeHandle dabfg::register_node</definition>
+        <argsstring>(const char *name, const char *source_location, F &amp;&amp;declaration_callback)</argsstring>
+        <name>register_node</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.registerNode, see <ref refid="classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1" kindref="member">NameSpace::registerNode</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="73" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="73" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gad601740a1707c5d5fccad27c3609abd0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::set_resolution</definition>
+        <argsstring>(const char *typeName, IPoint2 value)</argsstring>
+        <name>set_resolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>typeName</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.setResolution, see <ref refid="classdabfg_1_1_name_space_1a1d87ca408e9a423e07dac31fc890e1a3" kindref="member">NameSpace::setResolution</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="81" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1ga922b5151d8a5917dd69d51bff98344c1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::set_dynamic_resolution</definition>
+        <argsstring>(const char *typeName, IPoint2 value)</argsstring>
+        <name>set_dynamic_resolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>typeName</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.setDynamicResolution, see <ref refid="classdabfg_1_1_name_space_1ab42aceabe2cf00d9ca3a7a4196353449" kindref="member">NameSpace::setDynamicResolution</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="87" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gacdd0e63d96b4cec01506daf9f8890026" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::fill_slot</definition>
+        <argsstring>(NamedSlot slot, const char *res_name)</argsstring>
+        <name>fill_slot</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.fillSlot(slot, dabfg::root(), res_name), see <ref refid="classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00" kindref="member">NameSpace::fillSlot</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="92" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gaa6c4dc938bfd33044b4941b3fc7104d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::update_externally_consumed_resource_set</definition>
+        <argsstring>(eastl::span&lt; const char *const &gt; res_names)</argsstring>
+        <name>update_externally_consumed_resource_set</name>
+        <param>
+          <type>eastl::span&lt; const char *const &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.updateExternallyConsumedResourceSet, see <ref refid="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037" kindref="member">NameSpace::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names)</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="98" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="98" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gae7968199de001a848f947a88fa0740f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::update_externally_consumed_resource_set</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; res_names)</argsstring>
+        <name>update_externally_consumed_resource_set</name>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="104" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="104" bodyend="107"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1ga15bde25c74b84639be88c475aa31bb79" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::mark_resource_externally_consumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>mark_resource_externally_consumed</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.markResourceExternallyConsumed, see <ref refid="classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94" kindref="member">NameSpace::markResourceExternallyConsumed</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="113" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1ga9072c55d17effd2d0f7d5df12c291144" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::unmark_resource_externally_consumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>unmark_resource_externally_consumed</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.unmarkResourceExternallyConsumed, see <ref refid="classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0" kindref="member">NameSpace::unmarkResourceExternallyConsumed</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="119" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="11" column="1"/>
+  </compounddef>
+</doxygen>

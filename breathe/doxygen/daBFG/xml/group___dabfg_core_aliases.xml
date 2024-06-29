@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group___dabfg_core_aliases" kind="group">
+    <compoundname>DabfgCoreAliases</compoundname>
+    <title>Core daBfg aliases</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gacbc7438b6ff4f6edb6dd8a078bbfd51a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type>NodeHandle</type>
+        <definition>NodeHandle dabfg::register_node</definition>
+        <argsstring>(const char *name, const char *source_location, F &amp;&amp;declaration_callback)</argsstring>
+        <name>register_node</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.registerNode, see <ref refid="classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1" kindref="member">NameSpace::registerNode</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="73" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="73" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gad601740a1707c5d5fccad27c3609abd0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::set_resolution</definition>
+        <argsstring>(const char *typeName, IPoint2 value)</argsstring>
+        <name>set_resolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>typeName</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.setResolution, see <ref refid="classdabfg_1_1_name_space_1a1d87ca408e9a423e07dac31fc890e1a3" kindref="member">NameSpace::setResolution</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="81" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1ga922b5151d8a5917dd69d51bff98344c1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::set_dynamic_resolution</definition>
+        <argsstring>(const char *typeName, IPoint2 value)</argsstring>
+        <name>set_dynamic_resolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>typeName</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.setDynamicResolution, see <ref refid="classdabfg_1_1_name_space_1ab42aceabe2cf00d9ca3a7a4196353449" kindref="member">NameSpace::setDynamicResolution</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="87" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gacdd0e63d96b4cec01506daf9f8890026" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::fill_slot</definition>
+        <argsstring>(NamedSlot slot, const char *res_name)</argsstring>
+        <name>fill_slot</name>
+        <param>
+          <type>NamedSlot</type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.fillSlot(slot, dabfg::root(), res_name), see <ref refid="classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00" kindref="member">NameSpace::fillSlot</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="92" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gaa6c4dc938bfd33044b4941b3fc7104d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::update_externally_consumed_resource_set</definition>
+        <argsstring>(eastl::span&lt; const char *const &gt; res_names)</argsstring>
+        <name>update_externally_consumed_resource_set</name>
+        <param>
+          <type>eastl::span&lt; const char *const &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.updateExternallyConsumedResourceSet, see <ref refid="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037" kindref="member">NameSpace::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names)</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="98" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="98" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1gae7968199de001a848f947a88fa0740f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::update_externally_consumed_resource_set</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; res_names)</argsstring>
+        <name>update_externally_consumed_resource_set</name>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="104" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="104" bodyend="107"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1ga15bde25c74b84639be88c475aa31bb79" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::mark_resource_externally_consumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>mark_resource_externally_consumed</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.markResourceExternallyConsumed, see <ref refid="classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94" kindref="member">NameSpace::markResourceExternallyConsumed</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="113" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_aliases_1ga9072c55d17effd2d0f7d5df12c291144" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::unmark_resource_externally_consumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>unmark_resource_externally_consumed</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" kindref="member">dabfg::root()</ref>.unmarkResourceExternallyConsumed, see <ref refid="classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0" kindref="member">NameSpace::unmarkResourceExternallyConsumed</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="119" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Compatibility aliases for access to the root name space. </para>
+    </detaileddescription>
+  </compounddef>
+</doxygen>
