@@ -26,43 +26,15 @@ def dagormat_from_text(mat,text):
         if line == "twosided:b=yes":
             DM.sides = 1
         elif line.startswith('tex16support:b='):
-            pass
-        elif line.startswith('power:r='):
-            pass
+            pass#always yes for modern assets
         elif line.startswith('class:t='):
             DM.shader_class=line.replace('class:t=','')
-        elif line.startswith('diff:ip3='):
-            attr=line[9:].split(',')
-            value=[]
-            for el in attr:
-                value.append(float(el)/255)
-            DM.diffuse=value
-        elif line.startswith('spec:ip3='):
-            attr=line[9:].split(',')
-            value=[]
-            for el in attr:
-                value.append(float(el)/255)
-            DM.specular=value
-        elif line.startswith('emis:ip3='):
-            attr=line[9:].split(',')
-            value=[]
-            for el in attr:
-                value.append(float(el)/255)
-            DM.emissive=value
-        elif line.startswith('amb:ip3='):
-            attr=line[8:].split(',')
-            value=[]
-            for el in attr:
-                value.append(float(el)/255)
-            DM.ambient=value
-        elif line.startswith('power:r='):
-            DM.power=float(line[8:])
         elif line.startswith('script:t='):
-            opt=line[9:].split('=')
-            if opt[0]=="real_two_sided":
-                DM.sides = 2 if opt[1] == 'yes' else '0'
+            optional=line[9:].split('=')
+            if optional[0]=="real_two_sided":
+                DM.sides = 2 if optional[1] == 'yes' else 0
             else:
-                DM.optional[opt[0]]=fix_type(opt[1])
+                DM.optional[optional[0]]=fix_type(optional[1])
         elif line.startswith('tex'):
             tex=line.split(':t=')
             DM.textures[tex[0]]=tex[1]
@@ -70,43 +42,25 @@ def dagormat_from_text(mat,text):
 def dagormat_to_text(mat,text):
     DM=mat.dagormat
     text.clear()
-    text.write('  class:t="'+DM.shader_class+'"')
-    text.write('\n  twosided:b=')
+    text.write(f'class:t="{DM.shader_class}"\n')
+    text.write('tex16support:b=yes\n')
     if DM.sides == 1:
-        text.write('yes\n')
-    elif DM.sides == 2:
-        text.write('\n  script:t="real_two_sided=yes"\n')
+        text.write('twosided:b=yes\n')
     else:
-        text.write('no\n')
-    text.write('\n  tex16support:b=yes')
-    text.write('\n  power:r=32')
-    text.write('\n  amb:ip3=')
-    text.write(str(int(DM.ambient[0]*255))+',')
-    text.write(str(int(DM.ambient[1]*255))+',')
-    text.write(str(int(DM.ambient[2]*255)))
-    text.write('\n  diff:ip3=')
-    text.write(str(int(DM.diffuse[0]*255))+',')
-    text.write(str(int(DM.diffuse[1]*255))+',')
-    text.write(str(int(DM.diffuse[2]*255)))
-    text.write('\n  spec:ip3=')
-    text.write(str(int(DM.specular[0]*255))+',')
-    text.write(str(int(DM.specular[1]*255))+',')
-    text.write(str(int(DM.specular[2]*255)))
-    text.write('\n  emis:ip3=')
-    text.write(str(int(DM.emissive[0]*255))+',')
-    text.write(str(int(DM.emissive[1]*255))+',')
-    text.write(str(int(DM.emissive[2]*255)))
+        text.write('twosided:b=no\n')
+    if DM.sides == 2:
+        text.write('\nscript:t="real_two_sided=yes"\n')
     for param in list(DM.optional.keys()):
-        text.write('\n  script:t="'+param+'=')
+        text.write('\nscript:t="'+param+'=')
         try:
             values = DM.optional[param].to_list()
             value = ''
             for el in values:
-                value+=f'{round(el,7)}, '
+                value+=f'{round(el,5)}, '
             value = value[:-2]
         except:
             try:
-                value = f'{round(DM.optional[param],7)}'
+                value = f'{round(DM.optional[param],5)}'
             except:
                 value=str(DM.optional[param])
         text.write(value+'"')

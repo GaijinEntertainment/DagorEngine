@@ -25,6 +25,7 @@ from ..helpers.props                import fix_type
 from ..helpers.texts                import log
 from ..helpers.basename             import basename
 from ..helpers.popup                import show_popup
+from ..helpers.version              import get_blender_version
 from ..smooth_groups.smooth_groups  import uint_to_int,int_to_uint,sg_to_sharp_edges
 from ..tools.tools_panel            import fix_mat_slots, optimize_mat_slots
 
@@ -375,11 +376,15 @@ class DagImporter(Operator, ImportHelper):
             except RuntimeError as err:
                 msg =f"{err=}\n"
                 log(msg, type = 'ERROR', show = True)
-        else:
+        elif get_blender_version()< 4.1:
             me.calc_normals_split()
-        me.use_auto_smooth = True
-        me.auto_smooth_angle = pi
         o = bpy.data.objects.new(name=node.name, object_data=me)
+        if get_blender_version() < 4.1:
+            me.use_auto_smooth = True
+            me.auto_smooth_angle = pi
+        else:
+            with bpy.context.temp_override(object = o):
+                bpy.ops.object.shade_smooth(keep_sharp_edges=True)
         self.collection.objects.link(o)
         if parent is not None:
             o.parent = parent

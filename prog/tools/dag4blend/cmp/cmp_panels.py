@@ -8,6 +8,7 @@ from math                       import pi
 from ..helpers.basename         import basename
 from ..helpers.popup            import show_popup
 from ..helpers.texts            import log
+from ..helpers.version          import get_blender_version
 from ..tools.tools_functions    import *
 from ..tools.tools_panel        import apply_modifiers
 
@@ -154,8 +155,13 @@ def node_to_geo(node):
     apply_modifiers(geo_node)
     bpy.data.objects.remove(node)
     #shading
-    geo_node.data.use_auto_smooth = True
-    geo_node.data.auto_smooth_angle = 2*pi
+    version = get_blender_version()
+    if version <= 4.0:
+        geo_node.data.use_auto_smooth = True
+        geo_node.data.auto_smooth_angle = 2*pi
+    else:
+        with bpy.context.temp_override(object = geo_node):
+            bpy.ops.object.shade_smooth(keep_sharp_edges = True)
     #fixing UV order
     reorder_uv_layers(geo_node.data)
     return
@@ -413,7 +419,7 @@ class DAGOR_OT_bbox_to_gameobj(Operator):
         return P.node is not None
 
     def execute(self, context):
-        P = bpy.data.scenes[0].dag4blend.cmp
+        P = bpy.data.scenes[0].dag4blend.cmp.tools
         err = None
         nodes = [obj for obj in context.selected_objects if obj.type=='MESH']
         if P.node is None:

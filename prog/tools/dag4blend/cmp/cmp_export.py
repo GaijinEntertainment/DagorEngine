@@ -13,11 +13,22 @@ from ..helpers.basename import basename
 from ..helpers.popup    import show_popup
 
 
+TAB = "  "
+EXISTING_NODE_TYPES = [
+                        "prefab",
+                        "rendinst",
+                        "composit",
+                        "dynmodel",
+                        "gameobj",
+                        ]
+
 #functions
 def _tabs(i):
     cmp=bpy.data.texts['cmp']
-    for i in range(i):
-        cmp.write('\t')
+    if i>0:
+        for i in range(i):
+            cmp.write(TAB)
+    return
 
 def _to_str(value):
     try:#float/integer
@@ -63,12 +74,30 @@ def get_matrix(obj):
     l = og_matrix.to_translation()
 
     matrix = '['
-    matrix+=(f'[{_to_str(m[0][0])},{_to_str(m[1][0])},{_to_str(m[2][0])}]')
-    matrix+=(f'[{_to_str(m[0][1])},{_to_str(m[1][1])},{_to_str(m[2][1])}]')
-    matrix+=(f'[{_to_str(m[0][2])},{_to_str(m[1][2])},{_to_str(m[2][2])}]')
-    matrix+=(f'[{_to_str(l[0])},{_to_str(l[2])},{_to_str(l[1])}]')
+    matrix+=(f'[{_to_str(m[0][0])}, {_to_str(m[1][0])}, {_to_str(m[2][0])}] ')
+    matrix+=(f'[{_to_str(m[0][1])}, {_to_str(m[1][1])}, {_to_str(m[2][1])}] ')
+    matrix+=(f'[{_to_str(m[0][2])}, {_to_str(m[1][2])}, {_to_str(m[2][2])}] ')
+    matrix+=(f'[{_to_str(l[0])}, {_to_str(l[2])}, {_to_str(l[1])}]')
     matrix+=']'
     return(matrix)
+
+def get_node_name(node):
+    if node.instance_type != 'COLLECTION':
+        return None
+    instance_collection = node.instance_collection
+    if node.instance_collection is None:
+        return None
+    instance_col = node.instance_collection
+    if "name" in instance_col.keys(): # was overriden
+        node_name = instance_col["name"]
+    else:
+        node_name = instance_col.name
+    node_name = basename(node_name)
+    if "type" in instance_col.keys():
+        node_type = instance_col["type"]
+        if node_type in EXISTING_NODE_TYPES:
+            node_name = ":".join([node_name, node_type])
+    return node_name
 
 def write_entities(cmp,node,tabs):
     for ent in node.instance_collection.objects:
@@ -81,20 +110,27 @@ def write_entities(cmp,node,tabs):
         if ent.instance_type!='COLLECTION' or col is None:
             name=''
         else:
-            if 'name' in col.keys():
-                name = basename(col['name'].replace('*', basename(col.name)))
-            else:
-                name=basename(col.name)
+            name=get_node_name(ent)
         _tabs(tabs)
-        cmp.write('ent{ name:t="'+name+'";'+end)
+        cmp.write('ent{ name:t="'+name+'";' + end)
 
 def write_node(cmp,node,tabs):
     if node.type!='EMPTY':
         msg = f'node "{node.name}" is not Empty object!\n'
         log(msg, type = 'ERROR')
         return
+    cmp.write('\n')
     _tabs(tabs)
     cmp.write('node{\n')
+    #does it have name?
+    instance_col = node.instance_collection
+    if node.instance_type == 'COLLECTION' and instance_col is not None:
+        if instance_col.name.startswith('random.'):
+            write_entities(cmp,node,tabs+1)
+        else:
+            node_name=get_node_name(node)
+            _tabs(tabs+1)
+            cmp.write(f'name:t="{node_name}"\n')
     DP=node.dagorprops
     props=list(DP.keys())
     randomized_tf=False
@@ -113,22 +149,12 @@ def write_node(cmp,node,tabs):
         m=get_matrix(node)
         _tabs(tabs+1)
         cmp.write(f'tm:m={m}\n')
-    #does it have name?
-    instance_col = node.instance_collection
-    if node.instance_type == 'COLLECTION' and instance_col is not None:
-        if instance_col.name.startswith('random.'):
-            write_entities(cmp,node,tabs+1)
-        else:
-            node_name=basename(instance_col.name)
-            if 'type' in instance_col.keys() and instance_col["type"] is not None:
-                node_name+=f':{instance_col["type"]}'
-            cmp.write(f'\tname:t="{node_name}"\n')
     if node.children.__len__()>0:
         for child in node.children:
             write_node(cmp,child,tabs+1)
-            _tabs(tabs)
     _tabs(tabs)
     cmp.write('}\n')
+    return
 
 def cmp_export(col,path):
     cmp = get_text_clear('cmp')
@@ -155,6 +181,7 @@ def cmp_export(col,path):
         outfile.close()
         msg = f'EXPORTED cmp: {path}\n'
         log(msg, show = True)
+    return
 #CLASSES
 
 class DAGOR_OP_CmpExport(Operator):

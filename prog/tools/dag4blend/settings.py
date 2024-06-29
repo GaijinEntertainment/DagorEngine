@@ -458,5 +458,5 @@ def register():
 def unregister():
     for cl in classes:
         bpy.utils.unregister_class(cl)
-    del bpy.data.Scene.dag4blend
+    del bpy.types.Scene.dag4blend
     return

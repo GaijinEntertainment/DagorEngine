@@ -10,6 +10,7 @@ from  .tools_functions              import *
 from ..helpers.texts                import log
 from ..helpers.basename             import basename
 from ..helpers.popup                import show_popup
+from ..helpers.version              import get_blender_version
 
 #FUNCTIONS#################################################################
 
@@ -105,7 +106,16 @@ def pack_orphans(col):
     return
 
 def apply_modifiers(obj):
-    with bpy.context.temp_override(object = obj):
+    C = bpy.context
+    with C.temp_override(object = obj):
+        if C.scene.collection.objects.get(obj.name) is not None:
+            was_linked = False
+        else:
+            was_linked = True
+            C.scene.collection.objects.link(obj)
+        og_hide_mode = [obj.hide_viewport, obj.hide_get()]
+        obj.hide_viewport = False   #one with monitor icon
+        obj.hide_set(False)         #one with eye icon
         for mod in obj.modifiers:
             if mod.show_viewport:
                 try:
@@ -114,6 +124,11 @@ def apply_modifiers(obj):
                     node_name = obj['og_name'] if 'name' in obj.keys() else obj.name
                     message = f'"{mod.name}" modifier can not be applyed to "{node_name}" object\n'
                     log(message, type = 'ERROR', show = True)
+        if was_linked:
+            C.scene.collection.objects.unlink(obj)
+        #restoring visibility
+        obj.hide_viewport = og_hide_mode[0]
+        obj.hide_set(og_hide_mode[1])
     obj.modifiers.clear()
     return
 
@@ -362,7 +377,14 @@ class DAGOR_OT_PreserveSharp(Operator):
     bl_idname = "dt.preserve_sharp"
     bl_label = "Preserve Sharp Edges"
     bl_description = "Marks sharp edges based on smoothing angle and set it to 180 degrees"
+    if get_blender_version()>=4.1:
+        bl_description = "Does nothing in this blender version, auto_smooth_angle was removed in 4.1..."
     bl_options = {'UNDO'}
+    @classmethod
+    def poll(cls, context):
+        ver = get_blender_version()
+        return ver < 4.1
+
     def execute(self,context):
         sel=list(obj for obj in context.view_layer.objects.selected if obj.type=='MESH')
         if sel.__len__()==0:

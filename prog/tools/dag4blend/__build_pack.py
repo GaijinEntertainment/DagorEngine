@@ -43,7 +43,7 @@ for f in scan_folders:
 dest_zip_fn = r"dag4blend/dag4blend.zip"
 if len(sys.argv) > 1:
   if sys.argv[1] == 'FINAL':
-    dest_zip_fn = r"../../tools/dagor3_cdk/pluginBlender/dag4blend.zip"
+    dest_zip_fn = r"../../tools/dagor_cdk/universal/dag4blend.zip"
   else:
     print('echo usage: {0} [FINAL]'.format(sys.argv[0]))
     exit(1)

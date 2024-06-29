@@ -19,6 +19,7 @@ from ..helpers.popup                import show_popup
 from ..helpers.basename             import basename
 from ..helpers.multiline            import _label_multiline
 from ..helpers.texts                import log
+from ..helpers.version              import get_blender_version
 from ..tools.tools_panel            import apply_modifiers, fix_mat_slots, optimize_mat_slots, preserve_sharp
 from ..tools.tools_functions        import *
 
@@ -361,7 +362,8 @@ class DagExporter(Operator, ExportHelper):
         if msg is not None:
             log(f'Object "{exp_obj["og_name"]}": {msg}\n', type = 'ERROR')
     #necessary no matter what
-        preserve_sharp(exp_obj)
+        if get_blender_version()<4.1:
+            preserve_sharp(exp_obj)
         fix_mat_slots(exp_obj)
         reorder_uv_layers(me)
         if exp_obj.data.attributes.get('SG') is None:
@@ -389,7 +391,8 @@ class DagExporter(Operator, ExportHelper):
         meshExp = MeshExp()
 
         me.calc_loop_triangles()
-        me.calc_normals_split()
+        if get_blender_version()<4.1:
+            me.calc_normals_split()
 
         for v in me.vertices:
             meshExp.vertices.append(v.co)

@@ -6,6 +6,7 @@ from bpy.types          import Operator
 from bpy.props          import IntProperty
 
 from ..helpers.basename         import basename
+from ..helpers.version          import get_blender_version
 from .mesh_calc_smooth_groups   import *
 
 dic={}
@@ -23,26 +24,21 @@ def update_sg(self, context):
 #functions
 
 def sg_to_sharp_edges(mesh):
-    mesh.use_auto_smooth=True
-    mesh.auto_smooth_angle=pi
+    version = get_blender_version()
+    if version < 4.1:
+        mesh.use_auto_smooth=True
+        mesh.auto_smooth_angle=pi
     bm = mesh_to_bmesh(mesh)
-    edge_group=[0 for index in range(bm.edges.__len__())]
-    smoothed=[edge_group.copy() for i in range(32)]
-    SG=bm.faces.layers.int['SG']
     for face in bm.faces:
-        face.smooth=True
-        for i in range (32):
-            if (face[SG])&(2**i)!=0:
-                for edge in face.edges:
-                    smoothed[i][edge.index]+=1
+        face.smooth = True
+    SG=bm.faces.layers.int['SG']
     for edge in bm.edges:
-        edge.smooth=False
-    for smooth_group in smoothed:
-        i=0
-        for edge_count in smooth_group:
-            if edge_count>1:
-                bm.edges[i].smooth=True
-            i+=1
+        link_faces = edge.link_faces
+        if link_faces.__len__()!=2:
+            edge.smooth = False
+            continue
+        share_sg = link_faces[0][SG] & link_faces[1][SG] > 0
+        edge.smooth = share_sg
     bmesh_to_mesh(bm, mesh)
     return
 

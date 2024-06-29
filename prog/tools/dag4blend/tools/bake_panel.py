@@ -65,7 +65,7 @@ def bake_validate():
     hp_col = P.hp_collection
     supported_materials = get_supported_materials()
 #lp_collection
-    if P.col_to_bake is None:
+    if lp_col is None:
         return 'No lowpoly collection selected'
     lp_col_objects = col_objects_recursive(lp_col)
     objs_to_bake = [o for o in lp_col_objects if o.type == 'MESH']
@@ -321,7 +321,7 @@ class DAGOR_OT_PreviewBake(Operator):
         prev_col = bpy.data.collections.get(f'{col.name}_baked')
         if prev_col is None:
             prev_col=bpy.data.collections.new(name = f'{col.name}_baked')
-            S.collection.children.link(prev_col)
+            context.scene.collection.children.link(prev_col)
         else:
             meshes = []
             for obj in prev_col.objects:
@@ -379,7 +379,7 @@ class DAGOR_OT_RunBake(Operator):
         P = bpy.data.scenes[0].dag4blend.baker
         msg = bake_validate()
         if msg is not None:
-            og(str = msg, type = "ERROR")
+            log(str = msg, type = "ERROR")
             return{'CANCELLED'}
         if P.self_bake:
             for tex in tex_self:
