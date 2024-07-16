@@ -20,7 +20,6 @@
  * 
  * This class provides a mechanism for managing dynamic buffers in a ring buffer fashion.
  * It is expected, that user will implement initialization themselves, should they derive any classes.
- *
  */
 template <class BUF, class T>
 class RingDynamicBuffer
@@ -211,7 +210,7 @@ protected:
 
   /**
    * @brief Determines the number of bytes reserved for a single element.
-   * Must be larger or equal to its actual size.
+   * It must be larger or equal to its actual size.
    */
   int stride;
   
@@ -244,10 +243,8 @@ protected:
   int16_t rounds;
 };
 
-/** @brief Ring dynamic Vertex Buffer
- *
- * Class for managing ring dynamic vertex buffer.
- *
+/** 
+ * @brief Manages ring dynamic vertex buffer.
  */
 class RingDynamicVB : public RingDynamicBuffer<Vbuffer, void>
 {
@@ -397,7 +394,7 @@ protected:
 };
 
 /**
- * @brief Class for managing ring dynamic index buffer.
+ * @brief Manages ring dynamic index buffer.
  */
 class RingDynamicIB : public RingDynamicBuffer<Ibuffer, uint16_t>
 {

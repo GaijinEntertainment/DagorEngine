@@ -193,8 +193,8 @@ public:
   /**
    * @brief Initialization constructor.
    * 
-   * @param [in] locked_buffer Buffer that implements locking behavior.
-   * @param [in] Offset to use when accessing locked elements.
+   * @param [in] locked_buffer      Buffer that implements locking behavior.
+   * @param [in] offset_in_elements Offset to use when accessing locked elements.
    */
   LockedBufferWithOffset(LockedBuffer<T> &locked_buffer, size_t offset_in_elements = 0) :
     mLockedBuffer(locked_buffer), mOffsetInElems(offset_in_elements)

@@ -5,24 +5,26 @@
 //
 
 /**
- * @file Provides classes and functions for resource management.
+ * @file 
+ * @brief Provides classes and functions for resource management.
  * 
- *      \b Glossary:
- *      \b level is a feature of a texture, computed as <c> log2(max(tex.w, tex.h, tex.d)) </c>
- *      \li level=1 means smallest possible size (2x2x2) and is commonly used to denote the lowest quality
- *      \li level=15 means the maximal possible size (up to 32767x32768, but current GPUs don't handle such res)
- *      \li level=2..15 means some non-stub quality 
- *      Level variables usually have suffices \c Lev or \c _lev. \n
+ * ### Glossary: ###
+ * \b level is a feature of a texture, computed as <c> log2(max(tex.w, tex.h, tex.d)) </c>
+ * - level=1 means smallest possible size (2x2x2) and is commonly used to denote the lowest quality
+ * - level=15 means the maximal possible size (up to 32767x32768, but current GPUs don't handle such res)
+ * - level=2..15 means some non-stub quality
+ * .
+ * Level variables usually have suffices \c Lev or \c _lev. \n
  *
- *      \b QL stands for 'quality level' or, alternatively TQL - for 'texture quality level' (should not be 
- *      confused with 'level'). QL is a predefined quality preset of texture (stub, thumbnail, base, 
- *      high, ultrahigh, etc.). Quality levels are defined by \ref TexQL enumeration.\
- *      Variables for holding quality level usually have suffix QL or _ql.\n
+ * \b QL stands for 'quality level' or, alternatively TQL - for 'texture quality level' (should not be 
+ * confused with 'level'). QL is a predefined quality preset of texture (stub, thumbnail, base, 
+ * high, ultrahigh, etc.). Quality levels are defined by \ref TexQL enumeration.\
+ * Variables for holding quality level usually have suffix QL or _ql.\n
  *
- *      LFU stands for 'last frame used' which is just a count of the frame (usually from the game start) 
- *      where texture was referenced last time.\n
+ * \b LFU stands for 'last frame used' which is just a count of the frame (usually from the game start) 
+ * where texture was referenced last time.\n
  *
- *      \b levDesc is a levels descriptor that maps QL to level (e.g. TQL_thumb -> level=6, TQL_base -> level=9).\n
+ * \b levDesc is a level descriptor that maps QL to level (e.g. TQL_thumb -> level=6, TQL_base -> level=9).\n
  */
 #pragma once
 
@@ -33,7 +35,7 @@
 #include <startup/dag_globalSettings.h>
 
 /**
- * @brief Predefined presets for texture quality levels.
+ * @brief Presets for texture quality levels.
  */
 enum TexQL : unsigned
 {
@@ -80,7 +82,7 @@ struct D3dResManagerData
    * @brief Checks whether the resource handle is valid.
    * 
    * @param [in] id             Resource handle.
-   * @param [in] report_bad_gen Callback to invoke to report generation invalidity.
+   * @param [in] report_bad_gen Callback to report generation invalidity.
    * @return                    \c true if the handle is valid, \c false otherwise.
    * 
    * This implementation also checks generation validity which is potentially slow.
@@ -100,7 +102,7 @@ struct D3dResManagerData
   }
 
   /**
-   * @brief Retrieves reference count for the resource.
+   * @brief Retrieves reference count of the resource.
    * 
    * @param [in] id     A handle to the resource.
    * @return            Valid reference count of the resource or a negative value if the resource is unregistered.
@@ -112,7 +114,6 @@ struct D3dResManagerData
       return interlocked_acquire_load(refCount[idx]);
     return INVALID_REFCOUNT;
   }
-
   
   /**
    * @brief Retrieves a pointer to the resource by its handle.
@@ -132,7 +133,7 @@ struct D3dResManagerData
    * @return        A pointer to the handled texture or NULL on error.
    * 
    * This function is a wrapper over \ref getD3dRes which casts its result to \ref BaseTexture. 
-   * NULL is returned if \ref getD3dRes fails or if cast fails.
+   * NULL is returned if \ref getD3dRes fails or if the casting fails.
    */
   static __forceinline BaseTexture *getBaseTex(D3DRESID id) { return (BaseTexture *)getD3dRes(id); }
 
@@ -147,7 +148,6 @@ struct D3dResManagerData
    * This function is a wrapper over \ref degD3dRes which compares the handled resource type with \b TYPE.
    * In case the types match, it returns a resource pointer cast to \ref BaseTexture
    * NULL is returned if \ref getD3dRes fails or if the types mismatch.
-   * 
    */
   template <int TYPE>
   static __forceinline BaseTexture *getD3dTex(D3DRESID id)
@@ -189,7 +189,7 @@ struct D3dResManagerData
    * @param [in] id Resource handle.
    * @return        Current loaded level of the resource or 0 if \b id is invalid.
    * 
-   * Look at the top of the file for 'level' definition.
+   * See dag_resMgr.h for definition of 'level'.
    */
   static __forceinline uint8_t getResLoadedLev(D3DRESID id) { return isValidID(id, nullptr) ? resQS[id.index()].getLdLev() : 0; }
   
@@ -199,7 +199,7 @@ struct D3dResManagerData
    * @param [in] id Resource handle.
    * @return        Maximal requested level of the resource or 0 if \b id is invalid.
    *
-   * Look at the top of the file for 'level' definition.
+   * See dag_resMgr.h for definition of 'level'.
    */
   static __forceinline uint8_t getResMaxReqLev(D3DRESID id) { return isValidID(id, nullptr) ? resQS[id.index()].getMaxReqLev() : 0; }
 
@@ -298,8 +298,18 @@ protected:
      */
     void setMaxReqLev(uint8_t l) { interlocked_release_store(maxReqLev, l); }
 
-
+    /**
+     * @brief Retrieves the loaded level of the resource.
+     *
+     * @return Loaded level of the resource.
+     */
     uint8_t getLdLev() const { return interlocked_acquire_load(ldLev__rdLev) >> 4; }
+
+    /**
+     * @brief Retrieves the currently read (to be loaded) level of the resource.
+     *
+     * @return Read level of the resource.
+     */
     uint8_t getRdLev() const { return interlocked_acquire_load(ldLev__rdLev) & 0xF; }
 
     /**
@@ -310,28 +320,28 @@ protected:
     bool isReading() const { return getRdLev() != 0; }
 
     /**
-     * @brief Sets level of the resource to be loaded.
+     * @brief Sets the currently read (to be loaded) level of the resource.
      *
      * @param [in] Level value to assign.
      */
     void setRdLev(uint8_t l) { return interlocked_release_store(ldLev__rdLev, (getLdLev() << 4) | (l & 0xF)); }
 
     /**
-     * @brief Sets loaded level of the resource.
+     * @brief Sets the loaded level of the resource.
      *
      * @param [in] Level value to assign.
      */
     void setLdLev(uint8_t l) { return interlocked_release_store(ldLev__rdLev, (l << 4) | 0); }
 
     /**
-     * @brief Retrieves maximal level of the texture quality.
+     * @brief Retrieves the maximal level of the texture quality.
      *
      * @return Maximal level of the texture quality.
      */
     uint8_t getQLev() const { return interlocked_relaxed_load(qLev__maxLev) >> 4; }
 
     /**
-     * @brief Retrieves current maximal level of the resource.
+     * @brief Retrieves the current maximal level of the resource.
      *
      * @return Current maximal level of the resource.
      */
@@ -350,7 +360,7 @@ protected:
     }
     
     /**
-     * @brief Sets maximal level of the texture quality.
+     * @brief Sets the maximal level of the texture quality.
      *
      * @param [in] Level value to assign.
      */
@@ -361,7 +371,7 @@ protected:
     }
 
     /**
-     * @brief Sets current maximal level of the resource.
+     * @brief Sets the current maximal level of the resource.
      *
      * @param [in] Level value to assign.
      */
@@ -372,14 +382,14 @@ protected:
     }
 
     /**
-     * @brief Retrieves current QL of the resource.
+     * @brief Retrieves the  current QL of the resource.
      * 
      * @return Current quality level of the resource.
      */
     TexQL getCurQL() const { return TexQL(interlocked_acquire_load(curQL__maxQL) >> 4); }
 
     /**
-     * @brief Retrieves maximal QL of the resource.
+     * @brief Retrieves the maximal QL of the resource.
      *
      * @return Maximal quality level of the resource.
      */
@@ -388,7 +398,7 @@ protected:
     /**
      * @brief Checks if current and maximal quality levels of the resource are equal.
      * 
-     * @return \c true is if current and maximal quality level are equal, \c false otherwise.
+     * @return \c true if the current and maximal quality level are equal, \c false otherwise.
      */
     bool isEqualCurAndMaxQL() const
     {
@@ -676,7 +686,6 @@ static inline void release_managed_buf_verified(D3DRESID &id, T &buf)
  */
 const char *get_managed_res_name(D3DRESID id);
 
-// Returns managed resource ID by name, or BAD_D3DRESID if name is invalid.
 /**
  * @brief Retrieves a handle to the resource by its name.
  * 
@@ -718,7 +727,7 @@ inline TexQL get_managed_res_cur_tql(D3DRESID id) { return D3dResManagerData::ge
 inline TexQL get_managed_res_max_tql(D3DRESID id) { return D3dResManagerData::getResMaxQL(id); }
 
 /**
- * @brief Retrieves the current loaded level value of the managed resource.
+ * @brief Retrieves the maximal requested level value of the managed resource.
  * 
  * @param [in] id   A handle to the resource.
  * @return          Resource current loaded level value.
@@ -726,7 +735,7 @@ inline TexQL get_managed_res_max_tql(D3DRESID id) { return D3dResManagerData::ge
 inline unsigned get_managed_res_maxreq_lev(D3DRESID id) { return D3dResManagerData::getResMaxReqLev(id); }
 //! returns maximum requested-level for D3DRESID resource
 /**
- * @brief Retrieves the maximal requested level value of the managed resource.
+ * @brief Retrieves the loaded level value of the managed resource.
  * 
  * @param [in] id   A handle to th resource.
  * @return          Resource maximal requested level value.
@@ -760,7 +769,7 @@ D3DRESID iterate_all_managed_d3dres(D3DRESID after_rid, int min_ref_count);
  * @return              A handle to the first managed resource with the reference count value greater or equal to \b min_rc or \c BAD_TEXTUREID if there is no fitting resource.
  * 
  * Convenient for for-loops. See \ref next_managed_d3dres.
- * Example use case: <c>for (D3DRESID id = first_managed_d3dres(); id != BAD_D3DRESID; id = next_managed_d3dres(id)) </c>.
+ * Example use case: <tt>for (D3DRESID id = first_managed_d3dres(); id != BAD_D3DRESID; id = next_managed_d3dres(id)) <tt>.
  */
 inline D3DRESID first_managed_d3dres(int min_rc = 0) { return iterate_all_managed_d3dres(BAD_D3DRESID, min_rc); }
 
@@ -772,6 +781,6 @@ inline D3DRESID first_managed_d3dres(int min_rc = 0) { return iterate_all_manage
  * @return              A handle to the resource following \b prev_id with the reference count value greater or equal to \b min_rc or \c BAD_TEXTUREID if there is no fitting resource.
  * 
  * Convenient for for-loops. See \ref first_managed_d3dres.
- * Example use case: <c>for (D3DRESID id = first_managed_d3dres(); id != BAD_D3DRESID; id = next_managed_d3dres(id)) </c>.
+ * Example use case: <tt>for (D3DRESID id = first_managed_d3dres(); id != BAD_D3DRESID; id = next_managed_d3dres(id)) </tt>.
  */
 inline D3DRESID next_managed_d3dres(D3DRESID prev_id, int min_rc = 0) { return iterate_all_managed_d3dres(prev_id, min_rc); }

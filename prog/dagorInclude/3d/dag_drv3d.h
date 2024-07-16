@@ -196,6 +196,7 @@ public:
      * @param [in] sb A pointer to the buffer which data is to be reloaded.
      */
     virtual void reloadD3dRes(Sbuffer *sb) = 0;
+
     /**
      * @brief Implementation-defined function responsible for destroying the object that implements the IReloadData interface.
      */
@@ -221,7 +222,7 @@ public:
    * @brief Locks the buffer.
    * 
    * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to the position where the locking starts.
-   * @param [in]    size_bytes  Size in bytes of the region to lock.
+   * @param [in]    size_bytes  Size in bytes of the region to lock. If 0 has been passed, entire buffer is locked.
    * @param [out]   p           A pointer to the address of the locked region.
    * @param [in]    flags       Flags specifying the locking behavior.
    * @return                    0 on error, a non-zero value otherwise.
@@ -250,15 +251,16 @@ public:
   const char *getBufName() const { return getResName(); }
 
   // for structured buffers
+
   /**
-   * @brief Gets the size of each element in the structured buffer.
+   * @brief Retrieves the size of each element in the structured buffer.
    * 
    * @return Size of each element in the structured buffer.
    */
   virtual int getElementSize() const { return 0; }
 
   /**
-   * @brief Gets the number of elements in the structured buffer.
+   * @brief Retrieves the number of elements in the structured buffer.
    * 
    * @return Number of elements in the structured buffer.
    */
@@ -276,8 +278,8 @@ public:
    * @brief Copies a specified region of the contained data to another buffer.
    * 
    * @param [in] dest           A pointer to the destination buffer.
-   * @param [in] dst_ofs_bytes  Offset in bytes in the destination buffer at which the copied data is added.
-   * @param [in] src_ofs_bytes  Offset in bytes in the source buffer at which the data is copied.
+   * @param [in] dst_ofs_bytes  Offset in bytes in the destination buffer at which the copying begins.
+   * @param [in] src_ofs_bytes  Offset in bytes in the source buffer at which the copied data is inserted.
    * @param [in] size_bytes     Size in bytes of the data to copy.
    * @return                    \c true if the data was copied successfully, \c false otherwise.
    */
@@ -453,6 +455,9 @@ class ResourceBarrierDesc
   */
   static constexpr unsigned single_element_count = ~0u;
 
+  /**
+   * @brief Either a pointer to the buffer or an array of pointers to the buffers.
+   */
   union
   {
     Sbuffer *buffer;            /*<< A pointer to the buffer. */
@@ -460,7 +465,7 @@ class ResourceBarrierDesc
   };
 
   /**
-   * @brief Either a  or an array of pointers to the textures.
+   * @brief Either a pointer to the texture or an array of pointers to the textures.
    */
   union
   {
@@ -468,6 +473,9 @@ class ResourceBarrierDesc
     BaseTexture *const *textures;   /*<< An array of pointers to the textures.*/
   };
 
+  /**
+   * @brief Either a state or an array of states that the buffer(s) must be transitioned to.
+   */
   union
   {
     ResourceBarrier bufferState;            /*<< State the buffer will be transitioned to.*/
@@ -492,6 +500,9 @@ class ResourceBarrierDesc
     const unsigned *textureSubResIndices;   /*<< An array of texture subresource indices.*/
   };
 
+  /**
+   * @brief Either a texture subresource range or an array of texture subresource ranges.
+   */
   union
   {
     unsigned textureSubResRange;            /*<< Texture subresource range. */
@@ -606,7 +617,7 @@ public:
    * @param [in] count          Number of the textures.
    *
    * The i-th state should correspond to the subresources of 
-   * the i-th buffer specified by an \c sub_res_index[i] and \c sub_res_range[i].
+   * the i-th buffer specified by \c sub_res_index[i] and \c sub_res_range[i].
    */
   ResourceBarrierDesc(BaseTexture *const *texs, const ResourceBarrier *rb, const unsigned *sub_res_index,
     const unsigned *sub_res_range, unsigned count) :
@@ -792,7 +803,7 @@ public:
    * 
    * @param [in] rb The state to transition a buffer to.
    * 
-   * Expected use case is that \b rb has the RB_FLUSH_UAV flag set for all pending uav access.
+   * Expected use case is that \b rb has the \c RB_FLUSH_UAV flag set for all pending uav access.
    */
   explicit ResourceBarrierDesc(ResourceBarrier rb) : buffer{nullptr}, bufferState{rb}, bufferCount{single_element_count} {}
 
@@ -1016,7 +1027,7 @@ struct BasicResourceDescription
 struct BufferResourceDescription : BasicResourceDescription
 {
   /**
-   * @brief Byte size of an element in th buffer.
+   * @brief Byte size of an element in the buffer.
    */
   uint32_t elementSizeInBytes;
 
@@ -1392,7 +1403,7 @@ struct ResourceAllocationProperties
 };
 
 /**
- * @brief Set of flags that steer the behavior of the driver during creation of resource heaps.
+ * @brief Set of flags that steer behavior of the driver during creation of resource heaps.
  */
 enum ResourceHeapCreateFlag
 {
@@ -1486,7 +1497,7 @@ struct RenderPassBind
 };
 
 /**
- * @brief Early description of render target.
+ * @brief Early description of the render target.
  * 
  * Gives necessary info at render pass creation so the render pass is compatible with the targets of the same type later on.
  */
@@ -1509,7 +1520,7 @@ struct RenderPassTargetDesc
 };
 
 /**
- * @brief Description of target that is used inside render pass.
+ * @brief Description of the target that is used inside render pass.
  */
 struct RenderPassTarget
 {
@@ -1534,7 +1545,7 @@ struct RenderPassDesc
    */
   const char *debugName;
 
-   /**
+  /**
    * @brief Total amount of targets inside the render pass.
    */
   uint32_t targetCount;
@@ -1564,8 +1575,8 @@ struct RenderPassDesc
 };
 
 /**
-  * @brief Area of the render target where rendering will happen within the render pass.
-  */
+ * @brief Area of the render target where rendering will happen within the render pass.
+ */
 struct RenderPassArea
 {
   /**
@@ -1792,7 +1803,7 @@ void update_window_mode();
  * @param [out] device_id       A pointer to write device ID to. If \c NULL is passed, nothing is written.
  * @return                      GPU vendor ID. Check \ref dag_drvDecl.h for options.
  * 
- * May be called before \ref d3d::init_driver().
+ * This function may be called before \ref d3d::init_driver().
  */
 int guess_gpu_vendor(String *out_gpu_desc = NULL, uint32_t *out_drv_ver = NULL, DagorDateTime *out_drv_date = NULL,
   uint32_t *device_id = nullptr);
@@ -1818,6 +1829,7 @@ unsigned get_dedicated_gpu_memory_size_kb();
  * @brief Determines the size of free dedicated GPU memory in KiB.
  *
  * @return Size of free dedicated GPU memory in KiB.
+ * 
  * The function may be called before \ref d3d::init_driver().
  */
 unsigned get_free_dedicated_gpu_memory_size_kb();
@@ -1857,8 +1869,9 @@ void get_video_vendor_str(String &out_str);
 /**
  * @brief Returns scaled DPI of the primary display.
  *
- * The result is divided by 96 (96 dpi is for 100% scale in Windows).
  * @return The scaled DPI value.
+ * 
+ * The result is divided by 96 (96 dpi is for 100% scale in Windows).
  */
 float get_display_scale();
 
@@ -2004,6 +2017,7 @@ void *get_context();
 
 /**
  * @brief Retrieves the active driver description.
+ * 
  * @return A reference to the static instance of \c Driver3dDesc class containing the description of the active driver.
  */
 const Driver3dDesc &get_driver_desc();
@@ -2594,7 +2608,6 @@ PROGRAM create_program(VPROG vprog, FSHADER fsh, VDECL vdecl, unsigned *strides 
  * @note Created programs should be deleted externally.
  *
  * Indices passed have to correspond to objects stored in static object pools (see \ref shaders.cpp for details).
- *
  */
 PROGRAM create_program(const uint32_t *vpr_native, const uint32_t *fsh_native, VDECL vdecl, unsigned *strides = 0,
   unsigned streams = 0);
@@ -2656,7 +2669,7 @@ void delete_vertex_shader(VPROG vs);
 bool set_const(unsigned stage, unsigned reg_base, const void *data, unsigned num_regs);
 
 /**
- * @brief Sets data in a given constant buffer of a vertex stage.
+ * @brief Sets data in the constant buffer of a vertex stage.
  *
  * @param [in] reg_base Index of the first shader resource register to set the data for.
  * @param [in] data     Data to set.
@@ -2728,7 +2741,6 @@ static inline bool set_ps_const1(unsigned reg, float v0, float v1, float v2, flo
  * Immediate constant buffers are cheap to set.
  * It is guaranteed that immediate constant buffer slot support up to 4 dwords for each stage.
  * The number of dwords assigned should be minimized ideally to 1 or less.
- * 
  */
 bool set_immediate_const(unsigned stage, const uint32_t *data, unsigned num_words);
 // Fragment shader
@@ -2816,7 +2828,7 @@ static inline void release_cb0_data(unsigned stage)
 }
 
 // Vertex buffers
-
+    
 /**
  * @brief Creates an empty vertex buffer and adds it to the buffer list.
  * 
@@ -2883,7 +2895,6 @@ bool set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer);
  */
 bool set_render_target();
 
-/// set depth texture target. NULL means NO depth. use set_backbuf_depth for backbuf render target
 /**
  * @brief Sets current render target depth texture to a given texture.
  * 
@@ -3287,8 +3298,12 @@ inline bool setvsrc(int stream, Sbuffer *vb, int stride_bytes) { return setvsrc_
  */
 bool setind(Sbuffer *ib);
 
-// create dx8-style vertex declaration
-// returns BAD_VDECL on error
+/**
+ * @brief Registers vertex declaration.
+ *
+ * @param [in] vsd  A pointer to the encoded vertex declaration.
+ * @return          A handle to the registered vertex declaration or \ref BAD_VDECL on failure.
+ */
 VDECL create_vdecl(VSDTYPE *vsd);
 
 /**
@@ -3298,7 +3313,6 @@ VDECL create_vdecl(VSDTYPE *vsd);
 void delete_vdecl(VDECL vdecl);
 
 
-/// set current vertex declaration
 /**
  * @brief Binds the vertex declaration to the current render state.
  * 
@@ -3529,7 +3543,6 @@ bool dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_
  * @return                  \c true on success, \c false otherwise.
  */
 bool dispatch_indirect(Sbuffer *args, uint32_t byte_offset = 0, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
-
 
 /**
  * @brief Submits a command list for mesh shading pipeline.

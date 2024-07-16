@@ -236,7 +236,7 @@ struct Helper<Sbuffer> : public Helper<D3dResource>
    */
   static const char *getName(Sbuffer *res) { return res ? res->getBufName() : nullptr; }
 
-    /**
+  /**
    * @brief Binds the buffer to the shader variable.
    *
    * @param [in] varId  ID of the variable to set.
@@ -448,7 +448,7 @@ static inline bool isTex2d(D3dResource *res) { return !res || res->restype() == 
 static inline bool isBuf(D3dResource *res) { return !res || res->restype() == RES3D_SBUF; }
 
 /**
- * @brief Class that provides static member functions to extract resources managed by smart pointers.
+ * @brief Provides static member functions to extract resources managed by smart pointers.
  */
 struct PrivateDataGetter
 {
@@ -552,7 +552,7 @@ public:
 };
 
 /**
- * @brief Class that provides functions for getting the buffer resource managed by a smart pointer.
+ * @brief Provides functions for getting the buffer resource managed by a smart pointer.
  *
  * @tparam DerivedType Type of the smart pointer class. It must be a subclass of \ref BufferGetter.
  */
@@ -1272,12 +1272,12 @@ template <typename ResType>
 using ManagedRes = resptr_detail::ManagedRes<ResType>;
 
 /**
- * @brief Alias for the texture resource type managed by the manager.
+ * @brief Texture resource type managed by the manager.
  */
 using ManagedTex = ManagedRes<BaseTexture>;
 
 /**
- * @brief Alias for the texture resource type managed by the manager.
+ * @brief Buffer resource type managed by the manager.
  */
 using ManagedBuf = ManagedRes<Sbuffer>;
 
@@ -1858,7 +1858,7 @@ static inline SharedTex add_managed_array_texture(const char *name, dag::ConstSp
  * @param [in] name         Texture array name.
  * @param [in] tex_slice_nm A span of names for array slices.
  * @param [in] varname      Name of the shader variable.
- * @return                  A pointer to the texture array resource.
+ * @return                  Resulted texture holder.
  */
 static inline SharedTexHolder add_managed_array_texture(const char *name, dag::ConstSpan<const char *> tex_slice_nm,
   const char *varname)
@@ -1979,17 +1979,21 @@ static inline SharedBufHolder set_buffer(int var_id, const SharedBufHolder &buf)
 //@endcond
 
 /**
- * @brief Binds a texture to a shader variable within a scope. As soon as execution leaves the scope, the texture gets unbound.
- * 
- * @param [in] a Id of the shader variable to bind the texture to.
- * @param [in] b A smart pointer to the texture to bind.
+ * @brief Binds the texture to the shader variable within a scoped block.
+ *
+ * @param a Shader variable id (integer) to bind the texture to.
+ * @param b A \ref SharedTex or a \ref SharedTexHolder instance managing the texture.
+ *
+ * The texture is guaranteed to be unbound and released on the scoped block exit.
  */
 #define SCOPED_SET_TEXTURE(a, b) auto RESPTR_CAT2(scopedSharedTexGuard, __LINE__) = dag::set_texture(a, b)
 
 /**
- * @brief Binds a buffer to a shader variable within a scope. As soon as execution leaves the scope, the buffer gets unbound.
+ * @brief Binds the buffer to the shader variable within a scoped block.
  *
- * @param [in] a Id of the shader variable to bind the buffer to.
- * @param [in] b A smart pointer to the buffer to bind.
+ * @param a Shader variable id (integer) to bind the buffer to.
+ * @param b A \ref ShareBuf or a \ref SharedBufHolder instance managing the texture.
+ *
+ * The buffer is guaranteed to be unbound and released on the scoped block exit.
  */
 #define SCOPED_SET_BUFFER(a, b)  auto RESPTR_CAT2(scopedSharedBufGuard, __LINE__) = dag::set_buffer(a, b)

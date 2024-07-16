@@ -312,7 +312,7 @@ protected:
   void setBackbufDepth() { setDepth(NULL); }
 
   /**
-   * @brief Removes the texture from a render target slot.
+   * @brief Removes the texture from the render target slot.
    * 
    * @param [in] index  Index of the render target slot from which the texture should be removed.
    */

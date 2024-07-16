@@ -22,7 +22,7 @@ class String;
   {
 #if _TARGET_PC_WIN
   /**
-   * @brief Creates vertex program from hlsl shader code.
+   * @brief Creates vertex program from HLSL shader code.
    * 
    * @param [in]    hlsl_text   Buffer containing shader code.
    * @param [in]    len         (unused, perhaps, hlsl buffer length)
@@ -90,7 +90,7 @@ class String;
   {
 
   /**
-   * @brief Retrieves format of the texture.
+   * @brief Retrieves the format of the texture.
    * 
    * @param [in] tex    Texture to retrieve the format of.
    * @return            \c D3DFORMAT texture format.
@@ -98,7 +98,7 @@ class String;
   unsigned get_texture_format(BaseTexture *tex);
 
   /**
-   * @brief Retrieves format of the texture.
+   * @brief Retrieves the format of the texture.
    *
    * @param [in] tex    Texture to retrieve the format of.
    * @return            String storing \c D3DFORMAT texture format.
@@ -153,8 +153,7 @@ class String;
    * @return            \c true on success, \c false otherwise.
    */
   bool enable_vsync(bool enable);
-  //! retrieve list of available display modes
-  //! 
+
   /**
    * @brief Retrieves a list of available display modes.
    * 

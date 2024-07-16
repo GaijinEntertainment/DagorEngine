@@ -28,14 +28,14 @@ public:
    * @brief Returns the resource type.
    * 
    * @return One of the following: \c RES3D_TEX, \c RES3D_CUBETEX, \c RES3D_VOLTEX, \c RES3D_ARRTEX, \c RES3D_CUBEARRTEX, \c RES3D_SBUF.
-  */
+   */
   virtual int restype() const = 0;
 
   /**
-  * @brief Returns the resource size.
-  * 
-  * @return Size of the resource.
-  */
+   * @brief Returns the resource size.
+   * 
+   * @return Size of the resource.
+   */
   virtual int ressize() const = 0;
 
   /**
@@ -69,6 +69,7 @@ protected:
   virtual ~D3dResource(){};
 
 private:
+
   /**
   * @brief Name of the resource.
   */

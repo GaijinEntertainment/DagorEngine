@@ -5,7 +5,7 @@
 //
 
 /**
- * @brief The file determines a class for creating and managing resource handle.
+ * @brief Defines a class for creating and managing resource handle.
  */
 #pragma once
 
@@ -31,7 +31,7 @@ public:
   /**
    * @brief Copy constructor.
    * 
-   * @param [in] rhs    The object to copy from.
+   * @param [in] rhs    bject to copy from.
    */
   D3DRESID(const D3DRESID &rhs) = default;
 
@@ -137,7 +137,7 @@ public:
   };
 
   /**
-   * @brief Constructs \ref D3DRESID object (a handle to the resource) from by a given index and a generation.
+   * @brief Constructs \ref D3DRESID object (a handle to the resource) from a given index and generation.
    * 
    * @param [in] index      Resource index.
    * @param [in] generation Resource generation.
@@ -170,21 +170,46 @@ typedef D3DRESID TEXTUREID;
 
 
 #if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+
+/**
+ * @brief Defines invalid resource handle.
+ */
 inline D3DRESID constexpr BAD_D3DRESID;
 #else
+
+/**
+ * @brief Defines invalid resource handle.
+ */
 static constexpr D3DRESID BAD_D3DRESID;  //-V1043
 #endif
 
 #if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+
+/**
+ * @brief Defines invalid texture handle.
+ */
 inline D3DRESID constexpr BAD_TEXTUREID;
 #else
+
+/**
+ * @brief Defines invalid texture handle.
+ */
 static constexpr D3DRESID BAD_TEXTUREID; //-V1043
 #endif
 
+/**
+ * @brief \ref DebugConverter specialization that cooks a \ref D3DRESID instance for debug output.
+ */
 template <typename T>
 struct DebugConverter;
 template <>
 struct DebugConverter<D3DRESID>
 {
+  /**
+   * @brief Cooks a \ref D3DRESID instance for debug output.
+   *
+   * @param [in] v  Resource handle to cook.
+   * @return        Cooked handle (integer).
+   */
   static unsigned getDebugType(const D3DRESID &v) { return unsigned(v); }
 };
