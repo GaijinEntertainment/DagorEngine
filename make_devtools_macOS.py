@@ -4,7 +4,7 @@ import sys
 if sys.version_info.major < 3:
   print("\nERROR: Python 3 or a higher version is required to run this script.")
   exit(1)
-if sys.platform != 'darwin':
+if not sys.platform.startswith('darwin'):
   print("\nERROR: script is expected to be run on macOS.")
   exit(1)
 
