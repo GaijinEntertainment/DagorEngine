@@ -62,14 +62,12 @@ public:
     else
     {
       HumanInput::KeyboardRawState &kbd = HumanInput::raw_state_kbd;
-      flyMode->keys.left =
-        int((kbd.isKeyDown(HumanInput::DKEY_LEFT) && moveWithArrows) || (kbd.isKeyDown(HumanInput::DKEY_A) && moveWithWASD));
-      flyMode->keys.right =
-        int((kbd.isKeyDown(HumanInput::DKEY_RIGHT) && moveWithArrows) || (kbd.isKeyDown(HumanInput::DKEY_D) && moveWithWASD));
-      flyMode->keys.fwd =
-        int((kbd.isKeyDown(HumanInput::DKEY_UP) && moveWithArrows) || (kbd.isKeyDown(HumanInput::DKEY_W) && moveWithWASD));
-      flyMode->keys.back =
-        int((kbd.isKeyDown(HumanInput::DKEY_DOWN) && moveWithArrows) || (kbd.isKeyDown(HumanInput::DKEY_S) && moveWithWASD));
+      #define MKEY(arrows, wasd) int((kbd.isKeyDown(arrows) && moveWithArrows) || (kbd.isKeyDown(wasd) && moveWithWASD));
+      flyMode->keys.left = MKEY(HumanInput::DKEY_LEFT, HumanInput::DKEY_A);
+      flyMode->keys.right = MKEY(HumanInput::DKEY_RIGHT, HumanInput::DKEY_D);
+      flyMode->keys.fwd = MKEY(HumanInput::DKEY_UP, HumanInput::DKEY_W);
+      flyMode->keys.back = MKEY(HumanInput::DKEY_DOWN, HumanInput::DKEY_S);
+      #undef MKEY
       flyMode->keys.worldUp = int(kbd.isKeyDown(HumanInput::DKEY_E));
       flyMode->keys.worldDown = int(kbd.isKeyDown(HumanInput::DKEY_C));
       flyMode->keys.turbo = int(kbd.isKeyDown(HumanInput::DKEY_LSHIFT));
