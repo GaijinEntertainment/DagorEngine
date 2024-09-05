@@ -71,7 +71,12 @@ X:\develop\DagorEngine\samples\testGI\game
 
 To build the "testGI" sample, navigate to the X:\develop\DagorEngine\samples\testGI\prog folder and run the "jam" command. After building, the executable file will be placed in the testGI\game folder.
 
-Run DagorEngine/build_all.cmd to build the entire project toolkit from the source code. This process may take a considerable amount of time.
+Run `build_all`:
+- Windows: DagorEngine/build_all.cmd
+- MacOS: DagorEngine/build_all_macOS.sh
+- Linux: DagorEngine/build_all_linux.sh
+
+This builds the entire project toolkit from the source code. This process may take a considerable amount of time.
 
 ## Open-source roadmap
 
