@@ -20,9 +20,9 @@ if len(sys.argv) != 2:
   print('\nUsage: make_devtools.py DEVTOOLS_DEST_DIR\nexample: python3 make_devtools.py d:\\devtools\n')
   exit(1)
 
-if sys.platform == 'darwin':
+if sys.platform.startswith('darwin'):
   exit(exec(open(os.path.join(os.path.dirname(__file__), "make_devtools_macOS.py")).read()))
-elif sys.platform == 'linux':
+elif sys.platform.startswith('linux'):
   exit(exec(open(os.path.join(os.path.dirname(__file__), "make_devtools_linux.py")).read()))
 
 def error(s):
