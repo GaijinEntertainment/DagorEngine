@@ -1,3 +1,5 @@
+set CL=/utf-8
+
 pushd prog\tools
 call build_dagor_cdk_mini.cmd
 if errorlevel 1 (
